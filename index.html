@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Panel Heka | Gestión de Recogidas y Suministros</title>
   <link rel="icon" type="image/png" href="https://i.imgur.com/3bxAAa2.png">
+  <link rel="icon" type="image/png" href="https://i.imgur.com/3bxAAa2.png">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
@@ -600,7 +601,7 @@
     
     // PEGA AQUÍ LA URL DE TU APLICACIÓN WEB (LA QUE OBTUVISTE AL DESPLEGAR)
     // DEBE TERMINAR EN /exec
-    const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwQ0A2laY71QO-FJB8en3StYSBCd_eETrlbW2NXbAX0M6Tpvjp4wQK0_E80ZV246nki/exec"; 
+    const GAS_WEB_APP_URL = "URL_DE_TU_APP_SCRIPT"; 
   
     // Usamos un proxy público para evitar errores de CORS entre GitHub y Google
     // NOTA: Para producción masiva, se recomienda usar un proxy propio (Vercel/Cloudflare)
@@ -1136,7 +1137,6 @@
         }
       });
   
-      // --- LÓGICA FORMULARIO SUMINISTROS (ACTUALIZADA) ---
       async function buscarYllenarDatosSuministros(cedula) {
         console.log("Iniciando búsqueda SUMINISTROS para cédula:", cedula);
         mostrarLoading(true);
