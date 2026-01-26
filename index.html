@@ -612,7 +612,7 @@
      * Llama a Google Apps Script vía fetch y proxy.
      */
     async function callGoogleScript(action, params = {}) {
-      if (GAS_WEB_APP_URL === "https://script.google.com/macros/s/AKfycbx-gz89ojEusHO8aNFVkS9X_7mXCshBtbRDm1RkLqES_hDmIJKLV_i99bB9D_BAmls1/exec") {
+      if (GAS_WEB_APP_URL === "URL_DE_TU_APP_SCRIPT") {
         console.error("ERROR: No has configurado la GAS_WEB_APP_URL en el index.html");
         return { success: false, message: "Falta configurar URL del servidor." };
       }
