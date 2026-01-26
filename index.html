@@ -784,16 +784,7 @@
         }
       });
   
-      // --- LÓGICA FORMULARIO RECOGIDAS (ACTUALIZADA) ---
       async function buscarYllenarDatos(cedula) {
-        // --- VALIDACIÓN DE SEGURIDAD ---
-        if (cedula.length < 5) {
-          showToast('Por favor, ingresa un documento válido (mínimo 5 dígitos).', 'error');
-          limpiarYDesactivarCampos();
-          return; // Detenemos la función aquí para no enviar la petición
-        }
-        // -------------------------------
-  
         console.log("Iniciando búsqueda para cédula:", cedula);
         mostrarLoading(true);
         limpiarYDesactivarCampos();
@@ -1147,14 +1138,6 @@
   
       // --- LÓGICA FORMULARIO SUMINISTROS (ACTUALIZADA) ---
       async function buscarYllenarDatosSuministros(cedula) {
-        // --- VALIDACIÓN DE SEGURIDAD ---
-        if (cedula.length < 5) {
-          showToast('Por favor, ingresa un documento válido (mínimo 5 dígitos).', 'error');
-          limpiarYDesactivarCamposSuministros();
-          return; // Detenemos la función aquí para no enviar la petición
-        }
-        // -------------------------------
-  
         console.log("Iniciando búsqueda SUMINISTROS para cédula:", cedula);
         mostrarLoading(true);
         limpiarYDesactivarCamposSuministros();
