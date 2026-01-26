@@ -594,6 +594,34 @@
   
   <script>
   document.addEventListener('DOMContentLoaded', function() {
+    // URL de tu API de Google Apps Script (reemplaza con tu URL real)
+    const API_URL = 'https://script.google.com/macros/s/TU_ID_DE_IMPLEMENTACION/exec';
+
+    // Función para hacer llamadas a la API
+    async function callAPI(action, params = {}) {
+      try {
+        const response = await fetch(API_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            action: action,
+            ...params
+          })
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Error HTTP: ${response.status}`);
+        }
+        
+        return await response.json();
+      } catch (error) {
+        console.error('Error al llamar a la API:', error);
+        throw error;
+      }
+    }
+
     const sidebarToggle = document.getElementById('toggleSidebar');
     const hamburgerMenu = document.getElementById('hamburgerMenu');
     const sidebarOverlay = document.getElementById('sidebarOverlay');
@@ -733,34 +761,34 @@
       }
     });
 
-    function buscarYllenarDatos(cedula) {
+    async function buscarYllenarDatos(cedula) {
       console.log("Iniciando búsqueda para cédula:", cedula);
       mostrarLoading(true);
       limpiarYDesactivarCampos();
-      google.script.run
-        .withSuccessHandler(function(data) {
-          if (data && data.ok) {
-            document.getElementById('nombre').value = data.nombre || '';
-            document.getElementById('seller').value = data.companyId || '';
-            if (data.locations && data.locations.length > 0) {
-              locationsData = data.locations;
-              poblarSelects();
-            }
-            showToast('Información encontrada. Selecciona las opciones correctas.', 'success');
-          } else {
-            const msg = (data && data.msg) ? data.msg : 'No se pudo obtener la información.';
-            showToast(msg, 'error');
-            limpiarYDesactivarCampos();
+      
+      try {
+        const data = await callAPI('buscarPorCedula', { cedula });
+        
+        if (data && data.ok) {
+          document.getElementById('nombre').value = data.nombre || '';
+          document.getElementById('seller').value = data.companyId || '';
+          if (data.locations && data.locations.length > 0) {
+            locationsData = data.locations;
+            poblarSelects();
           }
-          mostrarLoading(false);
-        })
-        .withFailureHandler(function(error) {
-          console.error("Error al llamar a buscarDatosUsuario:", error);
-          showToast('Error de conexión con el servidor.', 'error');
+          showToast('Información encontrada. Selecciona las opciones correctas.', 'success');
+        } else {
+          const msg = (data && data.msg) ? data.msg : 'No se pudo obtener la información.';
+          showToast(msg, 'error');
           limpiarYDesactivarCampos();
-          mostrarLoading(false);
-        })
-        .buscarDatosUsuario(cedula);
+        }
+      } catch (error) {
+        console.error("Error al llamar a buscarDatosUsuario:", error);
+        showToast('Error de conexión con el servidor.', 'error');
+        limpiarYDesactivarCampos();
+      } finally {
+        mostrarLoading(false);
+      }
     }
 
     function poblarSelects() {
@@ -861,7 +889,7 @@
       return true;
     }
 
-    function procesarYEnviarFormulario() {
+    async function procesarYEnviarFormulario() {
       mostrarLoading(true);
       const formData = {
         cedula: document.getElementById('documento').value,
@@ -877,24 +905,24 @@
         interrapidisimoCode: document.getElementById('interrapidisimoCode').value,
         localidad: document.getElementById('localidad').value
       };
-      google.script.run
-        .withSuccessHandler(function(response) {
-          if (response.success) {
-            const successMessage = `Se generó solicitud de recolección exitosamente. #Radicado: ${response.radicado}`;
-            showToast(successMessage, 'success');
-            solicitudForm.reset();
-            limpiarYDesactivarCampos();
-          } else {
-            showToast(response.message || 'Error al procesar la solicitud.', 'error');
-          }
-          mostrarLoading(false);
-        })
-        .withFailureHandler(function(error) {
-          console.error("Error al llamar a procesarSolicitud:", error);
-          showToast('Error de conexión al procesar.', 'error');
-          mostrarLoading(false);
-        })
-        .procesarSolicitud(formData);
+      
+      try {
+        const response = await callAPI('procesarSolicitud', { formData });
+        
+        if (response.success) {
+          const successMessage = `Se generó solicitud de recolección exitosamente. #Radicado: ${response.radicado}`;
+          showToast(successMessage, 'success');
+          solicitudForm.reset();
+          limpiarYDesactivarCampos();
+        } else {
+          showToast(response.message || 'Error al procesar la solicitud.', 'error');
+        }
+      } catch (error) {
+        console.error("Error al llamar a procesarSolicitud:", error);
+        showToast('Error de conexión al procesar.', 'error');
+      } finally {
+        mostrarLoading(false);
+      }
     }
 
     solicitudForm.addEventListener('submit', function(e) {
@@ -1018,7 +1046,7 @@
       }
     }
 
-    function cargarEstadoRecogidas() {
+    async function cargarEstadoRecogidas() {
       const searchType = searchTypeSelect.value;
       const searchValue = searchValueInput.value.trim();
       if (!searchValue) {
@@ -1027,17 +1055,16 @@
       }
       console.log(`cargarEstadoRecogidas llamada con tipo: ${searchType}, valor: ${searchValue}`);
       mostrarLoading(true);
-      google.script.run
-        .withSuccessHandler(function(data) {
-          renderizarTabla(data);
-          mostrarLoading(false);
-        })
-        .withFailureHandler(function(error) {
-          console.error('FALLO al llamar a obtenerDatosHoja:', error);
-          showToast('Error de conexión con el servidor al cargar los datos.', 'error');
-          mostrarLoading(false);
-        })
-        .obtenerDatosHoja(searchType, searchValue);
+      
+      try {
+        const data = await callAPI('obtenerDatosHoja', { searchType, searchValue });
+        renderizarTabla(data);
+        mostrarLoading(false);
+      } catch (error) {
+        console.error('FALLO al llamar a obtenerDatosHoja:', error);
+        showToast('Error de conexión con el servidor al cargar los datos.', 'error');
+        mostrarLoading(false);
+      }
     }
 
     searchButton.addEventListener('click', cargarEstadoRecogidas);
@@ -1101,61 +1128,58 @@
       }
     });
 
-    function buscarYllenarDatosSuministros(cedula) {
+    async function buscarYllenarDatosSuministros(cedula) {
       console.log("Iniciando búsqueda SUMINISTROS para cédula:", cedula);
       mostrarLoading(true);
       limpiarYDesactivarCamposSuministros();
       document.getElementById('sumAprobadosInter').value = 'Consultando...';
       document.getElementById('sumAprobadosServi').value = 'Consultando...';
       
-      google.script.run
-        .withSuccessHandler(function(data) {
-          if (data && data.ok) {
-            document.getElementById('sumNombre').value = data.nombre || '';
-            const sellerId = data.companyId || '';
-            document.getElementById('sumSeller').value = sellerId;
-            
-            if (data.locations && data.locations.length > 0) {
-              sumLocationsData = data.locations;
-              poblarSelectsSuministros();
-            }
-            
-            if (sellerId) {
-              google.script.run
-                .withSuccessHandler(function(cantidades) {
-                  document.getElementById('sumAprobadosInter').value = cantidades.inter;
-                  document.getElementById('sumAprobadosServi').value = cantidades.servi;
-                  mostrarLoading(false);
-                  showToast('Información encontrada para Suministros.', 'success');
-                })
-                .withFailureHandler(function(error) {
-                  console.error("Error al contar guías:", error);
-                  document.getElementById('sumAprobadosInter').value = 'Error';
-                  document.getElementById('sumAprobadosServi').value = 'Error';
-                  mostrarLoading(false);
-                })
-                .obtenerCantidadGuias(sellerId);
-            } else {
-               document.getElementById('sumAprobadosInter').value = '0';
-               document.getElementById('sumAprobadosServi').value = '0';
-               mostrarLoading(false);
-               showToast('Información encontrada para Suministros.', 'success');
-            }
-
-          } else {
-            const msg = (data && data.msg) ? data.msg : 'No se pudo obtener la información.';
-            showToast(msg, 'error');
-            limpiarYDesactivarCamposSuministros();
-            mostrarLoading(false);
+      try {
+        const data = await callAPI('buscarPorCedula', { cedula });
+        
+        if (data && data.ok) {
+          document.getElementById('sumNombre').value = data.nombre || '';
+          const sellerId = data.companyId || '';
+          document.getElementById('sumSeller').value = sellerId;
+          
+          if (data.locations && data.locations.length > 0) {
+            sumLocationsData = data.locations;
+            poblarSelectsSuministros();
           }
-        })
-        .withFailureHandler(function(error) {
-          console.error("Error al llamar a buscarDatosUsuario (Suministros):", error);
-          showToast('Error de conexión con el servidor.', 'error');
+          
+          if (sellerId) {
+            try {
+              const cantidades = await callAPI('obtenerCantidadGuias', { centroCosto: sellerId });
+              document.getElementById('sumAprobadosInter').value = cantidades.inter;
+              document.getElementById('sumAprobadosServi').value = cantidades.servi;
+              mostrarLoading(false);
+              showToast('Información encontrada para Suministros.', 'success');
+            } catch (error) {
+              console.error("Error al contar guías:", error);
+              document.getElementById('sumAprobadosInter').value = 'Error';
+              document.getElementById('sumAprobadosServi').value = 'Error';
+              mostrarLoading(false);
+            }
+          } else {
+             document.getElementById('sumAprobadosInter').value = '0';
+             document.getElementById('sumAprobadosServi').value = '0';
+             mostrarLoading(false);
+             showToast('Información encontrada para Suministros.', 'success');
+          }
+
+        } else {
+          const msg = (data && data.msg) ? data.msg : 'No se pudo obtener la información.';
+          showToast(msg, 'error');
           limpiarYDesactivarCamposSuministros();
           mostrarLoading(false);
-        })
-        .buscarDatosUsuario(cedula);
+        }
+      } catch (error) {
+        console.error("Error al llamar a buscarDatosUsuario (Suministros):", error);
+        showToast('Error de conexión con el servidor.', 'error');
+        limpiarYDesactivarCamposSuministros();
+        mostrarLoading(false);
+      }
     }
 
     function poblarSelectsSuministros() {
@@ -1249,8 +1273,7 @@
       document.getElementById('modalErrorSuministros').style.display = 'none';
     });
 
-
-    suministrosForm.addEventListener('submit', function(e) {
+    suministrosForm.addEventListener('submit', async function(e) {
       e.preventDefault();
 
       // --- VALIDACIÓN DE SUMINISTROS (NUEVA LÓGICA) ---
@@ -1282,7 +1305,6 @@
         showValidationErrorSuministros(errorMensaje);
         return; // Detiene el envío aquí
       }
-
 
       // --- CONTINÚAN VALIDACIONES NORMALES ---
       const emailInput = document.getElementById('sumEmail');
@@ -1329,31 +1351,30 @@
 
       mostrarLoading(true);
 
-      google.script.run
-        .withSuccessHandler(function(response) {
-          try {
-            if (response.success) {
-              const radicado = response.radicado;
-              const successMessage = `Se generó solicitud de suministros exitosamente. #Radicado: ${radicado}`;
-              showToast(successMessage, 'success');
-              suministrosForm.reset();
-              limpiarYDesactivarCamposSuministros();
-            } else {
-              showToast(response.message || 'Error al enviar solicitud.', 'error');
-            }
-          } catch (e) {
-            console.error("Error interno al limpiar formulario:", e);
-            showToast("Solicitud procesada, pero hubo un error visual.", 'success');
-          } finally {
-            mostrarLoading(false);
+      try {
+        const response = await callAPI('procesarSolicitudSuministros', { formData });
+        
+        try {
+          if (response.success) {
+            const radicado = response.radicado;
+            const successMessage = `Se generó solicitud de suministros exitosamente. #Radicado: ${radicado}`;
+            showToast(successMessage, 'success');
+            suministrosForm.reset();
+            limpiarYDesactivarCamposSuministros();
+          } else {
+            showToast(response.message || 'Error al enviar solicitud.', 'error');
           }
-        })
-        .withFailureHandler(function(error) {
-          console.error("Error procesarSolicitudSuministros:", error);
-          showToast('Error de conexión con el servidor.', 'error');
+        } catch (e) {
+          console.error("Error interno al limpiar formulario:", e);
+          showToast("Solicitud procesada, pero hubo un error visual.", 'success');
+        } finally {
           mostrarLoading(false);
-        })
-        .procesarSolicitudSuministros(formData);
+        }
+      } catch (error) {
+        console.error("Error procesarSolicitudSuministros:", error);
+        showToast('Error de conexión con el servidor.', 'error');
+        mostrarLoading(false);
+      }
     });
 
     // --- LÓGICA BUSCAR ESTADO SUMINISTROS ---
@@ -1427,7 +1448,7 @@
       }
     }
 
-    function cargarEstadoSuministros() {
+    async function cargarEstadoSuministros() {
       const searchType = searchTypeSelectSuministros.value;
       const searchValue = searchValueInputSuministros.value.trim();
       
@@ -1439,17 +1460,15 @@
       console.log(`cargarEstadoSuministros llamada con tipo: ${searchType}, valor: ${searchValue}`);
       mostrarLoading(true);
       
-      google.script.run
-        .withSuccessHandler(function(data) {
-          renderizarTablaSuministros(data);
-          mostrarLoading(false);
-        })
-        .withFailureHandler(function(error) {
-          console.error('FALLO al llamar a obtenerEstadoSuministros:', error);
-          showToast('Error de conexión con el servidor al cargar los datos.', 'error');
-          mostrarLoading(false);
-        })
-        .obtenerEstadoSuministros(searchType, searchValue);
+      try {
+        const data = await callAPI('obtenerEstadoSuministros', { searchType, searchValue });
+        renderizarTablaSuministros(data);
+        mostrarLoading(false);
+      } catch (error) {
+        console.error('FALLO al llamar a obtenerEstadoSuministros:', error);
+        showToast('Error de conexión con el servidor al cargar los datos.', 'error');
+        mostrarLoading(false);
+      }
     }
 
     searchButtonSuministros.addEventListener('click', cargarEstadoSuministros);
