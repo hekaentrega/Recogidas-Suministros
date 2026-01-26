@@ -149,7 +149,6 @@
     .partner-showcase:hover img { width: 80%; height: 80%; }
     @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
 
-
     /* =================================================================
        RESPONSIVE MOBILE (HAMBURGUESA + CÍRCULOS)
        ================================================================= */
@@ -597,13 +596,14 @@
     // URL de tu API de Google Apps Script
     const API_URL = 'https://script.google.com/macros/s/AKfycbxjh5sJ9kTFz7QB5S14mU1mWUuHbfeINBJegQXaGm41f_r13VDUerwkILyBgyU7ztK7/exec';
     
-    // URL del proxy CORS
+    // URL del proxy CORS (alternativa si el CORS directo no funciona)
     const CORS_PROXY = 'https://cors-anywhere.herokuapp.com/';
-    
-    // Función para hacer llamadas a la API con proxy
+
+    // Función para hacer llamadas a la API con manejo de CORS
     async function callAPI(action, params = {}) {
       try {
-        const response = await fetch(CORS_PROXY + API_URL, {
+        // Intenta primero sin proxy
+        let response = await fetch(API_URL, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -614,6 +614,22 @@
             ...params
           })
         });
+        
+        // Si hay error de CORS, intenta con el proxy
+        if (!response.ok && response.status === 0) {
+          console.log('Intentando con proxy CORS...');
+          response = await fetch(CORS_PROXY + API_URL, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({
+              action: action,
+              ...params
+            })
+          });
+        }
         
         if (!response.ok) {
           throw new Error(`Error HTTP: ${response.status}`);
