@@ -286,6 +286,7 @@
                 <input type="hidden" class="form-control" id="seller" readonly placeholder="Se autocompletará">
               </div>
             </div>
+            </div>
             <div class="form-section">
               <h3 class="section-title">Información de Envío</h3>
               <div class="form-row">
@@ -414,12 +415,14 @@
                     <input type="email" class="form-control" id="sumEmail" placeholder="correo@ejemplo.com">
                   </div>
                 </div>
+                </div>
                 <div class="form-row">
                   <div class="form-group">
                     <label class="form-label">Nombre y Apellido</label>
                     <input type="text" class="form-control" id="sumNombre" readonly placeholder="Se autocompletará">
                   </div>
                   <input type="hidden" class="form-control" id="sumSeller" readonly>
+                </div>
                 </div>
                 <div class="form-row">
                   <div class="form-group">
@@ -445,6 +448,7 @@
                     <label class="form-label">Celular de Contacto</label>
                     <input type="text" class="form-control" id="sumCelular" readonly placeholder="Se autocompletará">
                   </div>
+                </div>
                 </div>
                 <div class="form-group">
                   <label class="form-label">Dirección</label>
@@ -526,7 +530,7 @@
                     <th><i class="bi bi-geo-alt"></i> Ciudad</th>
                     <th><i class="bi bi-list-ol"></i> Cantidad</th>
                     <th><i class="bi bi-info-circle"></i> Estado</th>
-                    <th><i class="bi bi-upc-scan"></i> Guía</th>
+                    <th><i class="bi-upc-scan"></i> Guía</th>
                   </tr>
                 </thead>
                 <tbody id="tablaResultadosSuministros"></tbody>
@@ -596,14 +600,11 @@
     // URL de tu API de Google Apps Script
     const API_URL = 'https://script.google.com/macros/s/AKfycbxjh5sJ9kTFz7QB5S14mU1mWUuHbfeINBJegQXaGm41f_r13VDUerwkILyBgyU7ztK7/exec';
     
-    // URL del proxy CORS (alternativa si el CORS directo no funciona)
-    const CORS_PROXY = 'https://cors-anywhere.herokuapp.com/';
-
-    // Función para hacer llamadas a la API con manejo de CORS
+    // Función para hacer llamadas a la API con manejo de CORS robusto
     async function callAPI(action, params = {}) {
+      // Intentar conexión directa primero
       try {
-        // Intenta primero sin proxy
-        let response = await fetch(API_URL, {
+        const response = await fetch(API_URL, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -615,30 +616,49 @@
           })
         });
         
-        // Si hay error de CORS, intenta con el proxy
-        if (!response.ok && response.status === 0) {
-          console.log('Intentando con proxy CORS...');
-          response = await fetch(CORS_PROXY + API_URL, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-Requested-With': 'XMLHttpRequest'
-            },
-            body: JSON.stringify({
-              action: action,
-              ...params
-            })
-          });
+        // Si la respuesta es exitosa, devolverla respuesta
+        if (response.ok) {
+          return await response.json();
         }
         
-        if (!response.ok) {
-          throw new Error(`Error HTTP: ${response.status}`);
+        // Si la respuesta falla, intentar con el proxy CORS
+        console.log('Intentando con proxy CORS...');
+        
+        const CORS_PROXY = 'https://cors-anywhere.herokuapp.com/';
+        const proxyUrl = CORS_PROXY + API_URL;
+        
+        const proxyResponse = await fetch(proxyUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+          },
+          body: JSON.stringify({
+            action: action,
+            ...params
+          })
+        });
+        
+        if (!proxyResponse.ok) {
+          throw new Error(`Error HTTP: ${proxyResponse.status}`);
         }
         
-        return await response.json();
+        return await proxyResponse.json();
+        
       } catch (error) {
         console.error('Error al llamar a la API:', error);
         throw error;
+      }
+    }
+
+    // Función para verificar si la API está disponible
+    async function verificarAPI() {
+      try {
+        await callAPI('test', {});
+        return true;
+      } catch (error) {
+        console.error('Error al verificar API:', error);
+        return false;
       }
     }
 
@@ -800,7 +820,7 @@
         } else {
           const msg = (data && data.msg) ? data.msg : 'No se pudo obtener la información.';
           showToast(msg, 'error');
-          limpiarYDesactivarCampos();
+          limpiarYdesactivarCampos();
         }
       } catch (error) {
         console.error("Error al llamar a buscarDatosUsuario:", error);
@@ -816,14 +836,14 @@
       const direccionSelect = document.getElementById('direccion');
       const uniqueCities = [...new Set(locationsData.map(loc => loc.city))];
       ciudadSelect.innerHTML = '<option value="" selected disabled>Selecciona una ciudad</option>';
-      uniqueCities.forEach(city => ciudadSelect.add(new Option(city, city)));
+      uniqueCities.forEach(city => ciudadSelect.add(new Option(city, city));
       ciudadSelect.disabled = false;
       direccionSelect.innerHTML = '<option value="" selected disabled>Selecciona una dirección</option>';
       locationsData.forEach(loc => direccionSelect.add(new Option(loc.address, loc.address)));
       direccionSelect.disabled = false;
     }
 
-    const localidadesBogota = ['Usaquén', 'Chapinero', 'Santa Fe', 'San Cristóbal', 'Usme', 'Tunjuelo', 'Bosa', 'Kennedy', 'Fontibón', 'Engativá', 'Suba', 'Barrios Unidos', 'Teusaquillo', 'Los Mártires', 'Antonio Nariño', 'Puente Aranda', 'La Candelaria', 'Rafael Uribe Uribe', 'Ciudad Bolívar', 'Sumapaz'];
+    const localidadesBogota = ['Usaquén', 'Chapinero', 'Santa Fe', 'San Cristóbal', 'San Cristóbal', 'Usme', 'Tunjuelo', 'Bosa', 'Kennedy', 'Fontibón', 'Engativá', 'Suba', 'Barrios Unidos', 'Teusaquillo', 'Los Mártires', 'Antonio Nariño', 'Puente Aranda', 'La Candelaria', 'Rafael Uribe Uribe', 'Ciudad Bolívar', 'Sumapaz'];
     
     document.getElementById('ciudad').addEventListener('change', function() {
       const selectedCity = this.value;
@@ -894,7 +914,7 @@
         }
       }
       const email = document.getElementById('email').value.trim();
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      const emailRegex = /^[^\s@]+@[^\s@]+@[^\s@]+\.[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(email)) {
         showToast('Por favor, ingresa un correo electrónico válido', 'error');
         document.getElementById('email').focus();
@@ -1038,7 +1058,7 @@
                   break;
               case 'Efectiva':
                   badgeColor = '#0d6efd'; 
-                  icon = '<i class="bi bi-box-seam"></i>';
+                  icon = '<i class="bi-box-seam"></i>';
                   break;
               default:
                   badgeColor = '#FDB813'; 
@@ -1178,7 +1198,7 @@
             } catch (error) {
               console.error("Error al contar guías:", error);
               document.getElementById('sumAprobadosInter').value = 'Error';
-              document.getElementById('sumAprobadosServi').value = 'Error';
+              document.getElementById('sumApidadosServi').value = 'Error';
               mostrarLoading(false);
             }
           } else {
@@ -1208,7 +1228,7 @@
       const uniqueCities = [...new Set(sumLocationsData.map(loc => loc.city))];
       
       ciudadSelect.innerHTML = '<option value="" selected disabled>Selecciona una ciudad</option>';
-      uniqueCities.forEach(city => ciudadSelect.add(new Option(city, city)));
+      uniqueCities.forEach(city => ciudadSelect.add(new Option(city, city));
       ciudadSelect.disabled = false;
       
       direccionSelect.innerHTML = '<option value="" selected disabled>Selecciona una dirección</option>';
@@ -1227,6 +1247,8 @@
         
         if (filteredLocations.length > 0 && filteredLocations[0].interrapidisimoCode) {
            document.getElementById('sumInterrapidisimoCode').value = filteredLocations[0].interrapidisimoCode;
+        } else {
+           document.getElementById('sumInterrapidisimoCode').value = '';
         }
       } else {
         direccionSelect.innerHTML = '<option value="" selected disabled>Selecciona una dirección</option>';
@@ -1330,7 +1352,7 @@
       const emailInput = document.getElementById('sumEmail');
       const aliadoInput = document.getElementById('sumAliado');
       const tipoInsumoInput = document.getElementById('sumTipoInsumo');
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+\.[^\s@]+$/;
 
       if (!emailRegex.test(emailInput.value.trim())) {
         showToast('Por favor ingresa un correo válido.', 'error');
@@ -1385,8 +1407,8 @@
             showToast(response.message || 'Error al enviar solicitud.', 'error');
           }
         } catch (e) {
-          console.error("Error interno al limpiar formulario:", e);
-          showToast("Solicitud procesada, pero hubo un error visual.", 'success');
+          console.error("Error procesarSolicitudSuministros:", e);
+          showToast('Error de conexión con el servidor.', 'error);
         } finally {
           mostrarLoading(false);
         }
@@ -1470,7 +1492,7 @@
 
     async function cargarEstadoSuministros() {
       const searchType = searchTypeSelectSuministros.value;
-      const searchValue = searchValueInputSuministros.value.trim();
+      const searchValue = searchValueSuministros.value.trim();
       
       if (!searchValue) {
         showToast('Por favor, ingresa un valor para buscar.', 'error');
@@ -1501,9 +1523,9 @@
     });
 
     clearFilterButtonSuministros.addEventListener('click', function() {
-      searchValueInputSuministros.value = '';
+      searchValueSuministros.value = '';
       document.getElementById('tablaResultadosSuministros').innerHTML = '';
-      document.getElementById('sinResultadosSuministros').style.display = 'none';
+      document.getElementById('sinResultadosSuministros').style.display = 'none;
     });
 
     // --- UTILIDADES ---
@@ -1520,7 +1542,7 @@
         toast.className = `toast ${type}`;
         const icon = type === 'success' 
           ? '<i class="bi bi-check-circle-fill"></i>' 
-          : '<i class="bi bi-exclamation-circle-fill"></i>';
+          : '<i class="bi-exclamation-circle-fill"></i>';
         toast.innerHTML = `${icon}<div>${message}</div>`;
         document.body.appendChild(toast);
         setTimeout(() => {
@@ -1529,6 +1551,16 @@
         }, 4000);
     }
 
+    // Al cargar la página, verificar la conexión a la API
+    document.addEventListener('DOMContentLoaded', async function() {
+      const apiDisponible = await verificarAPI();
+      if (!apiDisponible) {
+        showToast('La API no está disponible. Verifica la configuración.', 'error');
+        return;
+      }
+      
+      // Continuar con el resto del código...
+    });
   });
   </script>
 </body>
