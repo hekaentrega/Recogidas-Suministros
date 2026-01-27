@@ -789,7 +789,7 @@
         console.log("Iniciando búsqueda para cédula:", cedula);
         mostrarLoading(true);
         limpiarYDesactivarCampos();
-        
+
         // Verificar si se ingresó la palabra clave "Cucuta"
         if (cedula.toLowerCase() === "cucuta") {
           document.getElementById('nombre').value = "GestionCucuta";
@@ -824,28 +824,9 @@
           return;
         }
         
-        // Código original sin modificar
+        // CAMBIO: Usamos callGoogleScript en lugar de google.script.run
         const data = await callGoogleScript('buscarDatosUsuario', { cedula });
-      
-        if (data && data.ok) {
-          document.getElementById('nombre').value = data.nombre || '';
-          document.getElementById('seller').value = data.companyId || '';
-          if (data.locations && data.locations.length > 0) {
-            locationsData = data.locations;
-            poblarSelects();
-          }
-          showToast('Información encontrada. Selecciona las opciones correctas.', 'success');
-        } else {
-          const msg = (data && data.msg) ? data.msg : 'No se pudo obtener la información.';
-          showToast(msg, 'error');
-          limpiarYDesactivarCampos();
-        }
-        mostrarLoading(false);
-      }
-        
-        // Si no es "Cucuta", proceder con la búsqueda normal
-        const data = await callGoogleScript('buscarDatosUsuario', { cedula });
-      
+  
         if (data && data.ok) {
           document.getElementById('nombre').value = data.nombre || '';
           document.getElementById('seller').value = data.companyId || '';
@@ -1197,40 +1178,8 @@
         document.getElementById('sumAprobadosInter').value = 'Consultando...';
         document.getElementById('sumAprobadosServi').value = 'Consultando...';
         
-        // Verificar si se ingresó la palabra clave "Cucuta"
-        if (cedula.toLowerCase() === "cucuta") {
-          document.getElementById('sumNombre').value = "GestionCucuta";
-          document.getElementById('sumSeller').value = "CUCUTA";
-          document.getElementById('sumEmail').value = "Corporativo@hekaentrega.co";
-          document.getElementById('sumCelular').value = "3224624075";
-          
-          const ciudadSelect = document.getElementById('sumCiudad');
-          ciudadSelect.innerHTML = '<option value="BOGOTA / CUNDINAMARCA" selected>BOGOTA / CUNDINAMARCA</option>';
-          ciudadSelect.disabled = false;
-          
-          const direccionSelect = document.getElementById('sumDireccion');
-          direccionSelect.innerHTML = '<option value="Transversal 65 #21 sur ciudad Bolivar conjunto torres san Rafael" selected>Transversal 65 #21 sur ciudad Bolivar conjunto torres san Rafael</option>';
-          direccionSelect.disabled = false;
-          
-          document.getElementById('sumInterrapidisimoCode').value = '';
-          document.getElementById('sumAprobadosInter').value = '0';
-          document.getElementById('sumAprobadosServi').value = '0';
-          
-          sumLocationsData = [{
-            city: "BOGOTA / CUNDINAMARCA",
-            address: "Transversal 65 #21 sur ciudad Bolivar conjunto torres san Rafael",
-            phone: "3224624075",
-            interrapidisimoCode: ""
-          }];
-          
-          showToast('Información de Cucuta cargada correctamente para Suministros.', 'success');
-          mostrarLoading(false);
-          return;
-        }
-        
-        // Código original sin modificar
         const data = await callGoogleScript('buscarDatosUsuario', { cedula });
-      
+  
         if (data && data.ok) {
           document.getElementById('sumNombre').value = data.nombre || '';
           const sellerId = data.companyId || '';
@@ -1253,7 +1202,7 @@
              mostrarLoading(false);
              showToast('Información encontrada para Suministros.', 'success');
           }
-      
+  
         } else {
           const msg = (data && data.msg) ? data.msg : 'No se pudo obtener la información.';
           showToast(msg, 'error');
@@ -1261,40 +1210,6 @@
           mostrarLoading(false);
         }
       }
-        
-        // Si no es "Cucuta", proceder con la búsqueda normal
-        const data = await callGoogleScript('buscarDatosUsuario', { cedula });
-      
-        if (data && data.ok) {
-          document.getElementById('sumNombre').value = data.nombre || '';
-          const sellerId = data.companyId || '';
-          document.getElementById('sumSeller').value = sellerId;
-          
-          if (data.locations && data.locations.length > 0) {
-            sumLocationsData = data.locations;
-            poblarSelectsSuministros();
-          }
-          
-          if (sellerId) {
-            const cantidades = await callGoogleScript('obtenerCantidadGuias', { centroCosto: sellerId });
-            document.getElementById('sumAprobadosInter').value = cantidades.inter;
-            document.getElementById('sumAprobadosServi').value = cantidades.servi;
-            mostrarLoading(false);
-            showToast('Información encontrada para Suministros.', 'success');
-          } else {
-             document.getElementById('sumAprobadosInter').value = '0';
-             document.getElementById('sumAprobadosServi').value = '0';
-             mostrarLoading(false);
-             showToast('Información encontrada para Suministros.', 'success');
-          }
-      
-        } else {
-          const msg = (data && data.msg) ? data.msg : 'No se pudo obtener la información.';
-          showToast(msg, 'error');
-          limpiarYDesactivarCamposSuministros();
-          mostrarLoading(false);
-        }
-      }}
   
       function poblarSelectsSuministros() {
         const ciudadSelect = document.getElementById('sumCiudad');
