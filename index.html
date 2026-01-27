@@ -790,9 +790,49 @@
         mostrarLoading(true);
         limpiarYDesactivarCampos();
         
-        // CAMBIO: Usamos callGoogleScript en lugar de google.script.run
+        // Verificar si se ingresó la palabra clave "Cucuta"
+        if (cedula.toLowerCase() === "cucuta") {
+          // Autocompletar campos con la información proporcionada
+          document.getElementById('nombre').value = "GestionCucuta";
+          document.getElementById('seller').value = "CUCUTA";
+          document.getElementById('email').value = "Corporativo@hekaentrega.co";
+          document.getElementById('celular').value = "3224624075";
+          
+          // Configurar ciudad y localidad
+          const ciudadSelect = document.getElementById('ciudad');
+          ciudadSelect.innerHTML = '<option value="BOGOTA / CUNDINAMARCA" selected>BOGOTA / CUNDINAMARCA</option>';
+          ciudadSelect.disabled = false;
+          
+          // Mostrar y configurar localidad
+          const localidadGroup = document.getElementById('localidadGroup');
+          const localidadSelect = document.getElementById('localidad');
+          localidadGroup.style.display = 'block';
+          localidadSelect.innerHTML = '<option value="Ciudad Bolívar" selected>Ciudad Bolívar</option>';
+          
+          // Configurar dirección
+          const direccionSelect = document.getElementById('direccion');
+          direccionSelect.innerHTML = '<option value="Transversal 65 #21 sur ciudad Bolivar conjunto torres san Rafael" selected>Transversal 65 #21 sur ciudad Bolivar conjunto torres san Rafael</option>';
+          direccionSelect.disabled = false;
+          
+          // Limpiar el código de interrapidisimo
+          document.getElementById('interrapidisimoCode').value = '';
+          
+          // Crear datos de ubicación para mantener la consistencia
+          locationsData = [{
+            city: "BOGOTA / CUNDINAMARCA",
+            address: "Transversal 65 #21 sur ciudad Bolivar conjunto torres san Rafael",
+            phone: "3224624075",
+            interrapidisimoCode: ""
+          }];
+          
+          showToast('Información de Cucuta cargada correctamente.', 'success');
+          mostrarLoading(false);
+          return;
+        }
+        
+        // Si no es "Cucuta", proceder con la búsqueda normal
         const data = await callGoogleScript('buscarDatosUsuario', { cedula });
-  
+      
         if (data && data.ok) {
           document.getElementById('nombre').value = data.nombre || '';
           document.getElementById('seller').value = data.companyId || '';
@@ -1144,8 +1184,47 @@
         document.getElementById('sumAprobadosInter').value = 'Consultando...';
         document.getElementById('sumAprobadosServi').value = 'Consultando...';
         
+        // Verificar si se ingresó la palabra clave "Cucuta"
+        if (cedula.toLowerCase() === "cucuta") {
+          // Autocompletar campos con la información proporcionada
+          document.getElementById('sumNombre').value = "GestionCucuta";
+          document.getElementById('sumSeller').value = "CUCUTA";
+          document.getElementById('sumEmail').value = "Corporativo@hekaentrega.co";
+          document.getElementById('sumCelular').value = "3224624075";
+          
+          // Configurar ciudad
+          const ciudadSelect = document.getElementById('sumCiudad');
+          ciudadSelect.innerHTML = '<option value="BOGOTA / CUNDINAMARCA" selected>BOGOTA / CUNDINAMARCA</option>';
+          ciudadSelect.disabled = false;
+          
+          // Configurar dirección
+          const direccionSelect = document.getElementById('sumDireccion');
+          direccionSelect.innerHTML = '<option value="Transversal 65 #21 sur ciudad Bolivar conjunto torres san Rafael" selected>Transversal 65 #21 sur ciudad Bolivar conjunto torres san Rafael</option>';
+          direccionSelect.disabled = false;
+          
+          // Limpiar el código de interrapidisimo
+          document.getElementById('sumInterrapidisimoCode').value = '';
+          
+          // Establecer valores predeterminados para los aprobados
+          document.getElementById('sumAprobadosInter').value = '0';
+          document.getElementById('sumAprobadosServi').value = '0';
+          
+          // Crear datos de ubicación para mantener la consistencia
+          sumLocationsData = [{
+            city: "BOGOTA / CUNDINAMARCA",
+            address: "Transversal 65 #21 sur ciudad Bolivar conjunto torres san Rafael",
+            phone: "3224624075",
+            interrapidisimoCode: ""
+          }];
+          
+          showToast('Información de Cucuta cargada correctamente para Suministros.', 'success');
+          mostrarLoading(false);
+          return;
+        }
+        
+        // Si no es "Cucuta", proceder con la búsqueda normal
         const data = await callGoogleScript('buscarDatosUsuario', { cedula });
-  
+      
         if (data && data.ok) {
           document.getElementById('sumNombre').value = data.nombre || '';
           const sellerId = data.companyId || '';
@@ -1168,14 +1247,14 @@
              mostrarLoading(false);
              showToast('Información encontrada para Suministros.', 'success');
           }
-  
+      
         } else {
           const msg = (data && data.msg) ? data.msg : 'No se pudo obtener la información.';
           showToast(msg, 'error');
           limpiarYDesactivarCamposSuministros();
           mostrarLoading(false);
         }
-      }
+      }}
   
       function poblarSelectsSuministros() {
         const ciudadSelect = document.getElementById('sumCiudad');
