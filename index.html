@@ -604,17 +604,21 @@
     const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyty3zrvxgXcKSoJCf_x8LGe-hmzEhfMP3Y5GUPpmb0aAN0PeMsYg8O4ZTUbPIKbCFX/exec"; 
   
     async function callGoogleScript(action, params = {}) {
-      // ESTA ES LA URL DE TU PROXY EN CLOUDFLARE.
-      // POR AHORA USAMOS UN PLACEHOLDER. LO CAMBIAREMOS EN EL PASO 4.
-      const CLOUDFLARE_PROXY_URL = "https://mi-proyecto-heka.pages.dev/api/proxy";
-    
       try {
-        const response = await fetch(CLOUDFLARE_PROXY_URL, {
-          method: 'POST', // Usamos POST para enviar los datos en el body
+        // URL de tu aplicación web de Google Apps Script
+        const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyty3zrvxgXcKSoJCf_x8LGe-hmzEhfMP3Y5GUPpmb0aAN0PeMsYg8O4ZTUbPIKbCFX/exec";
+        
+        // Construir la URL con los parámetros
+        const url = new URL(GAS_WEB_APP_URL);
+        url.searchParams.append('action', action);
+        url.searchParams.append('params', JSON.stringify(params));
+        
+        const response = await fetch(url, {
+          method: 'GET',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ action, params }) // Enviamos action y params en el cuerpo
+          mode: 'cors' // Aseguramos que el modo CORS esté habilitado
         });
     
         if (!response.ok) {
