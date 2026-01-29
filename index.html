@@ -603,32 +603,16 @@
     // DEBE TERMINAR EN /exec
     const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyty3zrvxgXcKSoJCf_x8LGe-hmzEhfMP3Y5GUPpmb0aAN0PeMsYg8O4ZTUbPIKbCFX/exec"; 
   
-    // Usamos un proxy público para evitar errores de CORS entre GitHub y Google
-    // NOTA: Para producción masiva, se recomienda usar un proxy propio (Vercel/Cloudflare)
-    // PEGA ESTA LÍNEA EN TU index.html
- 
-  
-    /**
-     * Función puente: Reemplaza a google.script.run
-     * Llama a Google Apps Script vía fetch y proxy.
-     */
-    /**
-     * Función puente: Llama directamente a Google Apps Script sin proxy.
-     */
     async function callGoogleScript(action, params = {}) {
-      // La URL de tu Google Apps Script
       const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyty3zrvxgXcKSoJCf_x8LGe-hmzEhfMP3Y5GUPpmb0aAN0PeMsYg8O4ZTUbPIKbCFX/exec"; 
       
-      // Construimos la URL con los parámetros para una petición GET
-      const targetUrl = `${GAS_WEB_APP_URL}?action=${encodeURIComponent(action)}&params=${encodeURIComponent(JSON.stringify(params))}`;
-      
       try {
-        const response = await fetch(targetUrl, {
-          method: 'GET', // Usamos GET, que es más simple y funciona perfectamente ahora
+        const response = await fetch(GAS_WEB_APP_URL, {
+          method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
-          }
-          // No necesitamos body para GET
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: `action=${encodeURIComponent(action)}&params=${encodeURIComponent(JSON.stringify(params))}`
         });
     
         if (!response.ok) {
