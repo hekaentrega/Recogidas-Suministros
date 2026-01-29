@@ -631,11 +631,12 @@
         
         console.log("Enviando solicitud a:", proxyUrl);
         
-        // Hacemos la solicitud a través del proxy
+        // Hacemos la solicitud a través del proxy con headers específicos
         const response = await fetch(proxyUrl, {
           method: 'GET',
           headers: {
-            'X-Requested-With': 'XMLHttpRequest'  // Encabezado requerido por CORS Anywhere
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json'
           }
         });
         
