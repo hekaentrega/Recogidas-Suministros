@@ -606,26 +606,25 @@
     // Usamos un proxy público para evitar errores de CORS entre GitHub y Google
     // NOTA: Para producción masiva, se recomienda usar un proxy propio (Vercel/Cloudflare)
     // PEGA ESTA LÍNEA EN TU index.html
-    const PROXY_URL = "https://mi-cors-proxy-qt7s-git-main-maicols-proyectos-577fe5b8.vercel.app/api/proxy?url=";
+ 
   
     /**
      * Función puente: Reemplaza a google.script.run
      * Llama a Google Apps Script vía fetch y proxy.
      */
+    /**
+     * Función puente: Llama directamente a Google Apps Script sin proxy.
+     */
     async function callGoogleScript(action, params = {}) {
-      if (GAS_WEB_APP_URL === "URL_DE_TU_APP_SCRIPT") {
-        console.error("ERROR: No has configurado la GAS_WEB_APP_URL en el index.html");
-        return { success: false, message: "Falta configurar URL del servidor." };
-      }
-    
-      // Cambiar a método GET con parámetros en la URL
-      const targetUrl = PROXY_URL + encodeURIComponent(GAS_WEB_APP_URL) + 
-                       "?action=" + encodeURIComponent(action) + 
-                       "&params=" + encodeURIComponent(JSON.stringify(params));
+      // La URL de tu Google Apps Script
+      const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyty3zrvxgXcKSoJCf_x8LGe-hmzEhfMP3Y5GUPpmb0aAN0PeMsYg8O4ZTUbPIKbCFX/exec"; 
+      
+      // Construimos la URL con los parámetros para una petición GET
+      const targetUrl = `${GAS_WEB_APP_URL}?action=${encodeURIComponent(action)}&params=${encodeURIComponent(JSON.stringify(params))}`;
       
       try {
         const response = await fetch(targetUrl, {
-          method: 'GET',  // Cambiado de POST a GET
+          method: 'GET', // Usamos GET, que es más simple y funciona perfectamente ahora
           headers: {
             'Content-Type': 'application/json',
           }
