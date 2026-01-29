@@ -616,25 +616,28 @@
         console.error("ERROR: No has configurado la GAS_WEB_APP_URL en el index.html");
         return { success: false, message: "Falta configurar URL del servidor." };
       }
-  
-      const targetUrl = PROXY_URL + encodeURIComponent(GAS_WEB_APP_URL);
+    
+      // Cambiar a método GET con parámetros en la URL
+      const targetUrl = PROXY_URL + encodeURIComponent(GAS_WEB_APP_URL) + 
+                       "?action=" + encodeURIComponent(action) + 
+                       "&params=" + encodeURIComponent(JSON.stringify(params));
       
       try {
         const response = await fetch(targetUrl, {
-          method: 'POST',
+          method: 'GET',  // Cambiado de POST a GET
           headers: {
             'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ action: action, params: params })
+          }
+          // No necesitamos body para GET
         });
-  
+    
         if (!response.ok) {
           throw new Error(`Error de red: ${response.status}`);
         }
-  
+    
         const data = await response.json();
         return data;
-  
+    
       } catch (error) {
         console.error("Error en callGoogleScript:", error);
         return { success: false, message: "Error de conexión con el servidor." };
