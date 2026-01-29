@@ -3,9 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Panel Heka | Gestión de Recogidas y Suministros</title>
-  <link rel="icon" type="image/png" href="https://i.imgur.com/3bxAAa2.png">
-  <link rel="icon" type="image/png" href="https://i.imgur.com/3bxAAa2.png">
+  <title>Panel Heka | Gestión de Recogidas</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
@@ -595,946 +593,879 @@
   </div>
   
   <script>
+  // Configuración de la API de Apps Script
+  // REEMPLAZA ESTA URL CON LA URL DE TU APPS SCRIPT DESPLEGADA COMO APLICACIÓN WEB
+  const API_BASE_URL = 'https://script.google.com/macros/s/AKfycbwKqN7FJ-5q8m3vRlLzPqN7FJ-5q8m3vRlLzPqN7FJ-5q8m3vRlLz/exec';
 
+  // Función para hacer llamadas a la API de Apps Script
+  function callAppsScript(functionName, params = {}) {
+    const url = `${API_BASE_URL}?function=${functionName}&params=${encodeURIComponent(JSON.stringify(params))}`;
     
+    return fetch(url)
+      .then(response => response.json())
+      .catch(error => {
+        console.error('Error calling Apps Script:', error);
+        showToast('Error de conexión con el servidor', 'error');
+        return { success: false, message: 'Error de conexión' };
+      });
+  }
 
-// ==========================================
-// CONFIGURACIÓN DE CONEXIÓN CON CORS ANYWHERE
-// ==========================================
-
-    // URL de tu aplicación web de Google Apps Script
-    const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxFlnPrqQjtbXCNoVF1BFA-b5zdu8tn111WWKg70WAz-A2iTCBBPuOhTP00bObDSQ-z/exec"; 
+  document.addEventListener('DOMContentLoaded', function() {
+    const sidebarToggle = document.getElementById('toggleSidebar');
+    const hamburgerMenu = document.getElementById('hamburgerMenu');
+    const sidebarOverlay = document.getElementById('sidebarOverlay');
+    const sidebar = document.getElementById('sidebar');
+    const mainContent = document.querySelector('.main-content');
+    const menuIcon = sidebarToggle.querySelector('i');
     
-    // URL del proxy CORS Anywhere (público)
-    const CORS_ANYWHERE_URL = "https://cors-anywhere.herokuapp.com/";
-    
-    /**
-     * Función para comunicarse con Google Apps Script usando CORS Anywhere
-     */
-    async function callGoogleScript(action, params = {}) {
-      try {
-        // Construimos la URL con los parámetros
-        const url = new URL(GAS_WEB_APP_URL);
-        url.searchParams.append('action', action);
-        url.searchParams.append('params', JSON.stringify(params));
-        
-        // Usamos el proxy CORS Anywhere
-        const proxyUrl = CORS_ANYWHERE_URL + url.toString();
-        
-        console.log("Enviando solicitud a:", proxyUrl);
-        
-        // Hacemos la solicitud a través del proxy con AMBOS encabezados requeridos
-        const response = await fetch(proxyUrl, {
-          method: 'GET',
-          headers: {
-            'X-Requested-With': 'XMLHttpRequest',
-            'Origin': window.location.origin // Agregamos el encabezado Origin
-          }
-        });
-    
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error("Error del servidor:", response.status, errorText);
-          throw new Error(`Error ${response.status}: ${errorText.substring(0, 100)}...`);
-        }
-        
-        const data = await response.json();
-        return data;
-    
-      } catch (error) {
-        console.error("Error en callGoogleScript:", error);
-        return { success: false, message: "Error de conexión: " + error.message };
-      }
+    // --- CERRAR SIDEBAR MÓVIL ---
+    function closeMobileSidebar() {
+      sidebar.classList.remove('active');
+      sidebarOverlay.classList.remove('active');
     }
-  
-    // ==========================================
-    // LÓGICA DE LA INTERFAZ (REFCTORADA)
-    // ==========================================
-  
-    document.addEventListener('DOMContentLoaded', function() {
-      const sidebarToggle = document.getElementById('toggleSidebar');
-      const hamburgerMenu = document.getElementById('hamburgerMenu');
-      const sidebarOverlay = document.getElementById('sidebarOverlay');
-      const sidebar = document.getElementById('sidebar');
-      const mainContent = document.querySelector('.main-content');
-      const menuIcon = sidebarToggle.querySelector('i');
-      
-      // --- CERRAR SIDEBAR MÓVIL ---
-      function closeMobileSidebar() {
-        sidebar.classList.remove('active');
-        sidebarOverlay.classList.remove('active');
-      }
-  
-      // --- TOGGLE SIDEBAR ESCRITORIO ---
-      sidebarToggle.addEventListener('click', function() {
-        if(window.innerWidth > 768) {
-          sidebar.classList.toggle('collapsed');
-          if (sidebar.classList.contains('collapsed')) {
-            mainContent.style.marginLeft = 'var(--sidebar-collapsed-width)';
-          } else {
-            mainContent.style.marginLeft = 'var(--sidebar-width)';
-          }
-        }
-      });
-  
-      // --- TOGGLE SIDEBAR MÓVIL ---
-      hamburgerMenu.addEventListener('click', function() {
-        sidebar.classList.toggle('active');
-        sidebarOverlay.classList.toggle('active');
-      });
-  
-      // --- CERRAR OVERLAY ---
-      sidebarOverlay.addEventListener('click', function() {
-        closeMobileSidebar();
-      });
-  
-      // --- LÓGICA DE NAVEGACIÓN ---
-      const menuLinks = document.querySelectorAll('.nav-item');
-      const formPanel = document.getElementById('formPanel');
-      const statusPanel = document.getElementById('statusPanel');
-      const suministrosPanel = document.getElementById('suministrosPanel');
-      const statusSuministrosPanel = document.getElementById('statusSuministrosPanel');
-      const bienvenidaPanel = document.getElementById('bienvenidaPanel');
-  
-      formPanel.style.display = 'none';
-      statusPanel.style.display = 'none';
-      suministrosPanel.style.display = 'none';
-      statusSuministrosPanel.style.display = 'none';
-      bienvenidaPanel.style.display = 'flex'; 
-      
-      menuLinks.forEach(link => link.classList.remove('active'));
-  
-      menuLinks.forEach(link => {
-        link.addEventListener('click', function(e) {
-          e.preventDefault();
-          if (window.innerWidth <= 768) {
-            closeMobileSidebar();
-          }
-          menuLinks.forEach(l => l.classList.remove('active'));
-          this.classList.add('active');
-          bienvenidaPanel.style.display = 'none';
-  
-          const targetPanel = this.getAttribute('data-panel');
-          
-          formPanel.style.display = 'none';
-          statusPanel.style.display = 'none';
-          suministrosPanel.style.display = 'none';
-          statusSuministrosPanel.style.display = 'none';
-  
-          if (targetPanel === 'suministros') {
-            suministrosPanel.style.display = 'block';
-            if(document.getElementById('suministrosWrapper')) {
-              document.getElementById('suministrosWrapper').style.display = 'block';
-            }
-            statusSuministrosPanel.style.display = 'none';
-          } 
-          else if (targetPanel === 'statusSuministros') {
-            suministrosPanel.style.display = 'block';
-            if(document.getElementById('suministrosWrapper')) {
-              document.getElementById('suministrosWrapper').style.display = 'none';
-            }
-            statusSuministrosPanel.style.display = 'block';
-            document.getElementById('tablaResultadosSuministros').innerHTML = '';
-            document.getElementById('sinResultadosSuministros').style.display = 'none';
-          }
-          else if (targetPanel === 'form') {
-            formPanel.style.display = 'block';
-          } else if (targetPanel === 'status') {
-            statusPanel.style.display = 'block';
-            document.getElementById('tablaResultados').innerHTML = '';
-            document.getElementById('sinResultados').style.display = 'none';
-          }
-        });
-      });
-      
-      // --- LÓGICA FORMULARIO RECOGIDAS ---
-      let locationsData = [];
-      const cedulaInput = document.getElementById('documento');
-      const solicitudForm = document.getElementById('solicitudForm');
-      
-      function limpiarYDesactivarCampos() {
-          const selectsToClear = ['ciudad', 'direccion'];
-          selectsToClear.forEach(id => {
-              const select = document.getElementById(id);
-              select.innerHTML = `<option value="">Busca una cédula para ver las opciones</option>`;
-              select.disabled = true;
-          });
-          document.getElementById('nombre').value = '';
-          document.getElementById('seller').value = '';
-          document.getElementById('celular').value = '';
-          document.getElementById('interrapidisimoCode').value = '';
-          const localidadGroup = document.getElementById('localidadGroup');
-          const localidadSelect = document.getElementById('localidad');
-          localidadGroup.style.display = 'none';
-          localidadSelect.innerHTML = '<option value="">Selecciona una localidad</option>';
-          localidadSelect.value = '';
-          locationsData = [];
-  
-          document.getElementById('aliado').value = '';
-          document.querySelectorAll('#formPanel .aliado-card').forEach(c => c.classList.remove('selected'));
-          document.getElementById('cantidadDespachos').innerHTML = '';
-      }
-  
-      cedulaInput.addEventListener('blur', async function() {
-        const cedula = this.value.trim();
-        if (cedula) {
-          await buscarYllenarDatos(cedula);
-        } else {
-          limpiarYDesactivarCampos();
-        }
-      });
-  
-      cedulaInput.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          this.blur();
-        }
-      });
-  
-      async function buscarYllenarDatos(cedula) {
-        console.log("Iniciando búsqueda para cédula:", cedula);
-        mostrarLoading(true);
-        limpiarYDesactivarCampos();
 
-        // Verificar si se ingresó la palabra clave "Cucuta"
-        if (cedula.toLowerCase() === "cucuta") {
-          document.getElementById('nombre').value = "GestionCucuta";
-          document.getElementById('seller').value = "CUCUTA";
-          document.getElementById('email').value = "Corporativo@hekaentrega.co";
-          document.getElementById('celular').value = "3224624075";
-          
-          const ciudadSelect = document.getElementById('ciudad');
-          ciudadSelect.innerHTML = '<option value="BOGOTA / CUNDINAMARCA" selected>BOGOTA / CUNDINAMARCA</option>';
-          ciudadSelect.disabled = false;
-          
-          const localidadGroup = document.getElementById('localidadGroup');
-          const localidadSelect = document.getElementById('localidad');
-          localidadGroup.style.display = 'block';
-          localidadSelect.innerHTML = '<option value="Ciudad Bolívar" selected>Ciudad Bolívar</option>';
-          
-          const direccionSelect = document.getElementById('direccion');
-          direccionSelect.innerHTML = '<option value="Transversal 65 #21 sur ciudad Bolivar conjunto torres san Rafael" selected>Transversal 65 #21 sur ciudad Bolivar conjunto torres san Rafael</option>';
-          direccionSelect.disabled = false;
-          
-          document.getElementById('interrapidisimoCode').value = '';
-          
-          locationsData = [{
-            city: "BOGOTA / CUNDINAMARCA",
-            address: "Transversal 65 #21 sur ciudad Bolivar conjunto torres san Rafael",
-            phone: "3224624075",
-            interrapidisimoCode: ""
-          }];
-          
-          showToast('Información de Cucuta cargada correctamente.', 'success');
-          mostrarLoading(false);
-          return;
-        }
-        
-        // CAMBIO: Usamos callGoogleScript en lugar de google.script.run
-        const data = await callGoogleScript('buscarDatosUsuario', { cedula });
-  
-        if (data && data.ok) {
-          document.getElementById('nombre').value = data.nombre || '';
-          document.getElementById('seller').value = data.companyId || '';
-          if (data.locations && data.locations.length > 0) {
-            locationsData = data.locations;
-            poblarSelects();
-          }
-          showToast('Información encontrada. Selecciona las opciones correctas.', 'success');
+    // --- TOGGLE SIDEBAR ESCRITORIO ---
+    sidebarToggle.addEventListener('click', function() {
+      if(window.innerWidth > 768) {
+        sidebar.classList.toggle('collapsed');
+        if (sidebar.classList.contains('collapsed')) {
+          mainContent.style.marginLeft = 'var(--sidebar-collapsed-width)';
         } else {
-          const msg = (data && data.msg) ? data.msg : 'No se pudo obtener la información.';
-          showToast(msg, 'error');
-          limpiarYDesactivarCampos();
+          mainContent.style.marginLeft = 'var(--sidebar-width)';
         }
-        mostrarLoading(false);
       }
-  
-      function poblarSelects() {
-        const ciudadSelect = document.getElementById('ciudad');
-        const direccionSelect = document.getElementById('direccion');
-        const uniqueCities = [...new Set(locationsData.map(loc => loc.city))];
-        ciudadSelect.innerHTML = '<option value="" selected disabled>Selecciona una ciudad</option>';
-        uniqueCities.forEach(city => ciudadSelect.add(new Option(city, city)));
-        ciudadSelect.disabled = false;
-        direccionSelect.innerHTML = '<option value="" selected disabled>Selecciona una dirección</option>';
-        locationsData.forEach(loc => direccionSelect.add(new Option(loc.address, loc.address)));
-        direccionSelect.disabled = false;
-      }
-  
-      const localidadesBogota = ['Usaquén', 'Chapinero', 'Santa Fe', 'San Cristóbal', 'Usme', 'Tunjuelo', 'Bosa', 'Kennedy', 'Fontibón', 'Engativá', 'Suba', 'Barrios Unidos', 'Teusaquillo', 'Los Mártires', 'Antonio Nariño', 'Puente Aranda', 'La Candelaria', 'Rafael Uribe Uribe', 'Ciudad Bolívar', 'Sumapaz'];
-      
-      document.getElementById('ciudad').addEventListener('change', function() {
-        const selectedCity = this.value;
-        const direccionSelect = document.getElementById('direccion');
+    });
+
+    // --- TOGGLE SIDEBAR MÓVIL ---
+    hamburgerMenu.addEventListener('click', function() {
+      sidebar.classList.toggle('active');
+      sidebarOverlay.classList.toggle('active');
+    });
+
+    // --- CERRAR OVERLAY ---
+    sidebarOverlay.addEventListener('click', function() {
+      closeMobileSidebar();
+    });
+
+    // --- LÓGICA DE NAVEGACIÓN ---
+    const menuLinks = document.querySelectorAll('.nav-item');
+    const formPanel = document.getElementById('formPanel');
+    const statusPanel = document.getElementById('statusPanel');
+    const suministrosPanel = document.getElementById('suministrosPanel');
+    const statusSuministrosPanel = document.getElementById('statusSuministrosPanel');
+    const bienvenidaPanel = document.getElementById('bienvenidaPanel');
+
+    formPanel.style.display = 'none';
+    statusPanel.style.display = 'none';
+    suministrosPanel.style.display = 'none';
+    statusSuministrosPanel.style.display = 'none';
+    bienvenidaPanel.style.display = 'flex'; 
+    
+    menuLinks.forEach(link => link.classList.remove('active'));
+
+    menuLinks.forEach(link => {
+      link.addEventListener('click', function(e) {
+        e.preventDefault();
+        if (window.innerWidth <= 768) {
+          closeMobileSidebar();
+        }
+        menuLinks.forEach(l => l.classList.remove('active'));
+        this.classList.add('active');
+        bienvenidaPanel.style.display = 'none';
+
+        const targetPanel = this.getAttribute('data-panel');
+        
+        formPanel.style.display = 'none';
+        statusPanel.style.display = 'none';
+        suministrosPanel.style.display = 'none';
+        statusSuministrosPanel.style.display = 'none';
+
+        if (targetPanel === 'suministros') {
+          suministrosPanel.style.display = 'block';
+          if(document.getElementById('suministrosWrapper')) {
+            document.getElementById('suministrosWrapper').style.display = 'block';
+          }
+          statusSuministrosPanel.style.display = 'none';
+        } 
+        else if (targetPanel === 'statusSuministros') {
+          suministrosPanel.style.display = 'block';
+          if(document.getElementById('suministrosWrapper')) {
+            document.getElementById('suministrosWrapper').style.display = 'none';
+          }
+          statusSuministrosPanel.style.display = 'block';
+          document.getElementById('tablaResultadosSuministros').innerHTML = '';
+          document.getElementById('sinResultadosSuministros').style.display = 'none';
+        }
+        else if (targetPanel === 'form') {
+          formPanel.style.display = 'block';
+        } else if (targetPanel === 'status') {
+          statusPanel.style.display = 'block';
+          document.getElementById('tablaResultados').innerHTML = '';
+          document.getElementById('sinResultados').style.display = 'none';
+        }
+      });
+    });
+    
+    // --- LÓGICA FORMULARIO RECOGIDAS ---
+    let locationsData = [];
+    const cedulaInput = document.getElementById('documento');
+    const solicitudForm = document.getElementById('solicitudForm');
+    
+    function limpiarYDesactivarCampos() {
+        const selectsToClear = ['ciudad', 'direccion'];
+        selectsToClear.forEach(id => {
+            const select = document.getElementById(id);
+            select.innerHTML = `<option value="">Busca una cédula para ver las opciones</option>`;
+            select.disabled = true;
+        });
+        document.getElementById('nombre').value = '';
+        document.getElementById('seller').value = '';
+        document.getElementById('celular').value = '';
+        document.getElementById('interrapidisimoCode').value = '';
         const localidadGroup = document.getElementById('localidadGroup');
         const localidadSelect = document.getElementById('localidad');
-        if (selectedCity) {
-          const filteredLocations = locationsData.filter(loc => loc.city === selectedCity);
-          direccionSelect.innerHTML = '<option value="" selected disabled>Selecciona una dirección</option>';
-          filteredLocations.forEach(loc => direccionSelect.add(new Option(loc.address, loc.address)));
-          if (filteredLocations.length > 0 && filteredLocations[0].interrapidisimoCode) {
-            document.getElementById('interrapidisimoCode').value = filteredLocations[0].interrapidisimoCode;
+        localidadGroup.style.display = 'none';
+        localidadSelect.innerHTML = '<option value="">Selecciona una localidad</option>';
+        localidadSelect.value = '';
+        locationsData = [];
+
+        document.getElementById('aliado').value = '';
+        document.querySelectorAll('#formPanel .aliado-card').forEach(c => c.classList.remove('selected'));
+        document.getElementById('cantidadDespachos').innerHTML = '';
+    }
+
+    cedulaInput.addEventListener('blur', function() {
+      const cedula = this.value.trim();
+      if (cedula) {
+        buscarYllenarDatos(cedula);
+      } else {
+        limpiarYDesactivarCampos();
+      }
+    });
+
+    cedulaInput.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        this.blur();
+      }
+    });
+
+    function buscarYllenarDatos(cedula) {
+      console.log("Iniciando búsqueda para cédula:", cedula);
+      mostrarLoading(true);
+      limpiarYDesactivarCampos();
+      
+      callAppsScript('buscarPorCedula', { cedula })
+        .then(data => {
+          if (data && data.ok) {
+            document.getElementById('nombre').value = data.nombre || '';
+            document.getElementById('seller').value = data.companyId || '';
+            if (data.locations && data.locations.length > 0) {
+              locationsData = data.locations;
+              poblarSelects();
+            }
+            showToast('Información encontrada. Selecciona las opciones correctas.', 'success');
           } else {
-            document.getElementById('interrapidisimoCode').value = '';
+            const msg = (data && data.msg) ? data.msg : 'No se pudo obtener la información.';
+            showToast(msg, 'error');
+            limpiarYDesactivarCampos();
           }
-          if (selectedCity === 'BOGOTA / CUNDINAMARCA') {
-            localidadGroup.style.display = 'block';
-            localidadSelect.innerHTML = '<option value="" selected disabled>Selecciona una localidad</option>';
-            localidadesBogota.forEach(loc => {
-              localidadSelect.add(new Option(loc, loc));
-            });
-          } else {
-            localidadGroup.style.display = 'none';
-            localidadSelect.value = '';
-          }
+          mostrarLoading(false);
+        });
+    }
+
+    function poblarSelects() {
+      const ciudadSelect = document.getElementById('ciudad');
+      const direccionSelect = document.getElementById('direccion');
+      const uniqueCities = [...new Set(locationsData.map(loc => loc.city))];
+      ciudadSelect.innerHTML = '<option value="" selected disabled>Selecciona una ciudad</option>';
+      uniqueCities.forEach(city => ciudadSelect.add(new Option(city, city)));
+      ciudadSelect.disabled = false;
+      direccionSelect.innerHTML = '<option value="" selected disabled>Selecciona una dirección</option>';
+      locationsData.forEach(loc => direccionSelect.add(new Option(loc.address, loc.address)));
+      direccionSelect.disabled = false;
+    }
+
+    const localidadesBogota = ['Usaquén', 'Chapinero', 'Santa Fe', 'San Cristóbal', 'Usme', 'Tunjuelo', 'Bosa', 'Kennedy', 'Fontibón', 'Engativá', 'Suba', 'Barrios Unidos', 'Teusaquillo', 'Los Mártires', 'Antonio Nariño', 'Puente Aranda', 'La Candelaria', 'Rafael Uribe Uribe', 'Ciudad Bolívar', 'Sumapaz'];
+    
+    document.getElementById('ciudad').addEventListener('change', function() {
+      const selectedCity = this.value;
+      const direccionSelect = document.getElementById('direccion');
+      const localidadGroup = document.getElementById('localidadGroup');
+      const localidadSelect = document.getElementById('localidad');
+      if (selectedCity) {
+        const filteredLocations = locationsData.filter(loc => loc.city === selectedCity);
+        direccionSelect.innerHTML = '<option value="" selected disabled>Selecciona una dirección</option>';
+        filteredLocations.forEach(loc => direccionSelect.add(new Option(loc.address, loc.address)));
+        if (filteredLocations.length > 0 && filteredLocations[0].interrapidisimoCode) {
+          document.getElementById('interrapidisimoCode').value = filteredLocations[0].interrapidisimoCode;
         } else {
-          direccionSelect.innerHTML = '<option value="" selected disabled>Selecciona una dirección</option>';
+          document.getElementById('interrapidisimoCode').value = '';
+        }
+        if (selectedCity === 'BOGOTA / CUNDINAMARCA') {
+          localidadGroup.style.display = 'block';
+          localidadSelect.innerHTML = '<option value="" selected disabled>Selecciona una localidad</option>';
+          localidadesBogota.forEach(loc => {
+            localidadSelect.add(new Option(loc, loc));
+          });
+        } else {
           localidadGroup.style.display = 'none';
           localidadSelect.value = '';
         }
-      });
-  
-      document.getElementById('direccion').addEventListener('change', function() {
-        const selectedAddress = this.value;
-        const location = locationsData.find(loc => loc.address === selectedAddress);
-        if (location) {
-          document.getElementById('celular').value = location.phone || '';
-          document.getElementById('interrapidisimoCode').value = location.interrapidisimoCode || '';
-        }
-      });
-  
-      function actualizarOpcionesDespachos() {
-        const aliadoSeleccionado = document.getElementById('aliado').value;
-        const cantidadDespachosSelect = document.getElementById('cantidadDespachos');
-        cantidadDespachosSelect.innerHTML = '';
-        const opcionesEstandar = ['1-5', '5-10', '10-15', '15-20', '20+'];
-        const opcionesHeka = ['3-10', '10-15', '15-20', '20+'];
-        const opcionesAAgregar = (aliadoSeleccionado === 'LOGISTICA PROPIA HEKA') ? opcionesHeka : opcionesEstandar;
-        opcionesAAgregar.forEach(opcion => {
-          cantidadDespachosSelect.add(new Option(opcion, opcion));
-        });
+      } else {
+        direccionSelect.innerHTML = '<option value="" selected disabled>Selecciona una dirección</option>';
+        localidadGroup.style.display = 'none';
+        localidadSelect.value = '';
       }
-      document.getElementById('aliado').addEventListener('change', actualizarOpcionesDespachos);
-  
-      function validarFormulario() {
-        const camposRequeridos = [
-          { id: 'documento', nombre: 'Documento' }, { id: 'email', nombre: 'Correo electrónico' },
-          { id: 'ciudad', nombre: 'Ciudad' }, { id: 'nombre', nombre: 'Nombre' },
-          { id: 'seller', nombre: 'Seller' }, { id: 'aliado', nombre: 'Aliado logístico' },
-          { id: 'direccion', nombre: 'Dirección' }, { id: 'celular', nombre: 'Celular' }
-        ];
-        for (const campo of camposRequeridos) {
-          const elemento = document.getElementById(campo.id);
-          if (!elemento.value.trim()) {
-            showToast(`Por favor, completa el campo "${campo.nombre}"`, 'error');
-            elemento.focus();
-            return false;
-          }
-        }
-        const email = document.getElementById('email').value.trim();
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
-          showToast('Por favor, ingresa un correo electrónico válido', 'error');
-          document.getElementById('email').focus();
+    });
+
+    document.getElementById('direccion').addEventListener('change', function() {
+      const selectedAddress = this.value;
+      const location = locationsData.find(loc => loc.address === selectedAddress);
+      if (location) {
+        document.getElementById('celular').value = location.phone || '';
+        document.getElementById('interrapidisimoCode').value = location.interrapidisimoCode || '';
+      }
+    });
+
+    function actualizarOpcionesDespachos() {
+      const aliadoSeleccionado = document.getElementById('aliado').value;
+      const cantidadDespachosSelect = document.getElementById('cantidadDespachos');
+      cantidadDespachosSelect.innerHTML = '';
+      const opcionesEstandar = ['1-5', '5-10', '10-15', '15-20', '20+'];
+      const opcionesHeka = ['3-10', '10-15', '15-20', '20+'];
+      const opcionesAAgregar = (aliadoSeleccionado === 'LOGISTICA PROPIA HEKA') ? opcionesHeka : opcionesEstandar;
+      opcionesAAgregar.forEach(opcion => {
+        cantidadDespachosSelect.add(new Option(opcion, opcion));
+      });
+    }
+    document.getElementById('aliado').addEventListener('change', actualizarOpcionesDespachos);
+
+    function validarFormulario() {
+      const camposRequeridos = [
+        { id: 'documento', nombre: 'Documento' }, { id: 'email', nombre: 'Correo electrónico' },
+        { id: 'ciudad', nombre: 'Ciudad' }, { id: 'nombre', nombre: 'Nombre' },
+        { id: 'seller', nombre: 'Seller' }, { id: 'aliado', nombre: 'Aliado logístico' },
+        { id: 'direccion', nombre: 'Dirección' }, { id: 'celular', nombre: 'Celular' }
+      ];
+      for (const campo of camposRequeridos) {
+        const elemento = document.getElementById(campo.id);
+        if (!elemento.value.trim()) {
+          showToast(`Por favor, completa el campo "${campo.nombre}"`, 'error');
+          elemento.focus();
           return false;
         }
-        const cantidadDespachos = document.getElementById('cantidadDespachos').value;
-        if (!cantidadDespachos) {
-          showToast('Por favor, selecciona la cantidad de despachos', 'error');
-          document.getElementById('cantidadDespachos').focus();
-          return false;
-        }
-        return true;
       }
-  
-      async function procesarYEnviarFormulario() {
-        mostrarLoading(true);
-        const formData = {
-          cedula: document.getElementById('documento').value,
-          email: document.getElementById('email').value,
-          ciudad: document.getElementById('ciudad').value,
-          nombre: document.getElementById('nombre').value,
-          seller: document.getElementById('seller').value,
-          aliado: document.getElementById('aliado').value,
-          tipoSolicitud: 'RECOLECCION',
-          direccion: document.getElementById('direccion').value,
-          celular: document.getElementById('celular').value,
-          cantidadDespachos: document.getElementById('cantidadDespachos').value,
-          interrapidisimoCode: document.getElementById('interrapidisimoCode').value,
-          localidad: document.getElementById('localidad').value
-        };
-        
-        // CAMBIO: Usamos callGoogleScript
-        const response = await callGoogleScript('procesarSolicitud', formData);
-        
-        if (response.success) {
-          const successMessage = `Se generó solicitud de recolección exitosamente. #Radicado: ${response.radicado}`;
-          showToast(successMessage, 'success');
-          solicitudForm.reset();
-          limpiarYDesactivarCampos();
-        } else {
-          showToast(response.message || 'Error al procesar la solicitud.', 'error');
-        }
-        mostrarLoading(false);
+      const email = document.getElementById('email').value.trim();
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        showToast('Por favor, ingresa un correo electrónico válido', 'error');
+        document.getElementById('email').focus();
+        return false;
       }
-  
-      solicitudForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        if (!validarFormulario()) {
-          return;
-        }
-        const aliadoSeleccionado = document.getElementById('aliado').value;
-        if (aliadoSeleccionado === 'LOGISTICA PROPIA HEKA') {
-          document.getElementById('modalConfirmacionHeka').style.display = 'flex';
-        } else {
-          procesarYEnviarFormulario();
-        }
-      });
-  
-      document.getElementById('btnCancelarModal').addEventListener('click', function() {
-        document.getElementById('modalConfirmacionHeka').style.display = 'none';
-      });
-      document.getElementById('btnFinalizarModal').addEventListener('click', function() {
-        document.getElementById('modalConfirmacionHeka').style.display = 'none';
-        procesarYEnviarFormulario();
-      });
-  
-      const recogidaCards = document.querySelectorAll('#formPanel .aliado-card');
-      const aliadoInput = document.getElementById('aliado');
-  
-      if (recogidaCards.length > 0) {
-        recogidaCards.forEach(card => {
-          card.addEventListener('click', function() {
-            recogidaCards.forEach(c => c.classList.remove('selected'));
-            this.classList.add('selected');
-            const aliadoSeleccionado = this.getAttribute('data-value');
-            aliadoInput.value = aliadoSeleccionado;
-            actualizarOpcionesDespachos();
-          });
-        });
+      const cantidadDespachos = document.getElementById('cantidadDespachos').value;
+      if (!cantidadDespachos) {
+        showToast('Por favor, selecciona la cantidad de despachos', 'error');
+        document.getElementById('cantidadDespachos').focus();
+        return false;
       }
-  
-      // --- LÓGICA BUSCAR ESTADOS (RECOGIDAS) ---
-      const searchTypeSelect = document.getElementById('searchType');
-      const searchValueInput = document.getElementById('searchValue');
-      const searchButton = document.getElementById('btnBuscar');
-      const clearFilterButton = document.getElementById('btnLimpiar');
-      const tablaResultados = document.getElementById('tablaResultados');
-      const sinResultados = document.getElementById('sinResultados');
-  
-      function renderizarTabla(data) {
-        tablaResultados.innerHTML = '';
-        sinResultados.style.display = 'none';
-        
-        const horaActual = new Date().getHours();
-  
-        if (data && Array.isArray(data) && data.length > 0) {
-          data.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
-          
-          data.forEach(row => {
-            const fecha = new Date(row.fecha).toLocaleString('es-CO', { timeZone: 'America/Bogota' });
-            const aliado = row.aliado || 'N/A';
-            const ciudad = row.ciudad || 'N/A';
-            const direccion = row.direccion || 'N/A';
-            const estado = row.estado || 'Pendiente'; 
-  
-            let badgeColor = '';
-            let badgeText = '#fff';
-            let icon = '';
-  
-            if (estado === 'Asignada siguiente día') {
-              if (horaActual < 9) {
-                badgeColor = '#198754'; 
-                icon = '<i class="bi bi-check-circle-fill"></i>';
-              } else {
-                badgeColor = '#0d6efd';
-                icon = '<i class="bi bi-clock-fill"></i>';
-              }
-            }
-            else {
-              switch (estado) {
-                case 'Asignada':
-                    badgeColor = '#198754'; 
-                    icon = '<i class="bi bi-check-circle-fill"></i>';
-                    break;
-                case 'Cancelada':
-                    badgeColor = '#dc3545'; 
-                    icon = '<i class="bi bi-x-circle-fill"></i>';
-                    break;
-                case 'No Recogida':
-                    badgeColor = '#6c757d'; 
-                    icon = '<i class="bi bi-x-diamond-fill"></i>';
-                    break;
-                case 'Re-Asignada':
-                    badgeColor = '#fd7e14'; 
-                    icon = '<i class="bi bi-arrow-repeat"></i>';
-                    break;
-                case 'Efectiva':
-                    badgeColor = '#0d6efd'; 
-                    icon = '<i class="bi bi-box-seam"></i>';
-                    break;
-                default:
-                    badgeColor = '#FDB813'; 
-                    icon = '<i class="bi bi-clock-history"></i>';
-                    break;
-              }
-            }
-  
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-              <td>${fecha}</td>
-              <td>${aliado}</td>
-              <td>${ciudad}</td>
-              <td>${direccion}</td>
-              <td>
-                <span style="background-color: ${badgeColor}; color: ${badgeText}; padding: 6px 12px; border-radius: 20px; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;">
-                  ${icon} ${estado}
-                </span>
-              </td>
-            `;
-            tablaResultados.appendChild(tr);
-          });
-        } else {
-          sinResultados.style.display = 'block';
-        }
-      }
-  
-      async function cargarEstadoRecogidas() {
-        const searchType = searchTypeSelect.value;
-        const searchValue = searchValueInput.value.trim();
-        if (!searchValue) {
-          showToast('Por favor, ingresa un valor para buscar.', 'error');
-          return;
-        }
-        console.log(`cargarEstadoRecogidas llamada con tipo: ${searchType}, valor: ${searchValue}`);
-        mostrarLoading(true);
-        
-        // CAMBIO: Usamos callGoogleScript
-        const data = await callGoogleScript('obtenerDatosHoja', { searchType, searchValue });
-        
-        renderizarTabla(data);
-        mostrarLoading(false);
-      }
-  
-      searchButton.addEventListener('click', cargarEstadoRecogidas);
-      searchValueInput.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          cargarEstadoRecogidas();
-        }
-      });
-      clearFilterButton.addEventListener('click', function() {
-        searchValueInput.value = '';
-        document.getElementById('tablaResultados').innerHTML = '';
-        document.getElementById('sinResultados').style.display = 'none';
-      });
-  
-      // --- LÓGICA FORMULARIO SUMINISTROS ---
+      return true;
+    }
+
+    function procesarYEnviarFormulario() {
+      mostrarLoading(true);
+      const formData = {
+        cedula: document.getElementById('documento').value,
+        email: document.getElementById('email').value,
+        ciudad: document.getElementById('ciudad').value,
+        nombre: document.getElementById('nombre').value,
+        seller: document.getElementById('seller').value,
+        aliado: document.getElementById('aliado').value,
+        tipoSolicitud: 'RECOLECCION',
+        direccion: document.getElementById('direccion').value,
+        celular: document.getElementById('celular').value,
+        cantidadDespachos: document.getElementById('cantidadDespachos').value,
+        interrapidisimoCode: document.getElementById('interrapidisimoCode').value,
+        localidad: document.getElementById('localidad').value
+      };
       
-      let sumLocationsData = [];
-      const sumCedulaInput = document.getElementById('sumDocumento');
-      const suministrosForm = document.getElementById('suministrosForm');
-  
-      function limpiarYDesactivarCamposSuministros() {
-          const selectsToClear = ['sumCiudad', 'sumDireccion'];
-          selectsToClear.forEach(id => {
-              const select = document.getElementById(id);
-              select.innerHTML = `<option value="">Busca una cédula para ver las opciones</option>`;
-              select.disabled = true;
-          });
-          document.getElementById('sumNombre').value = '';
-          document.getElementById('sumSeller').value = '';
-          document.getElementById('sumCelular').value = '';
-          document.getElementById('sumInterrapidisimoCode').value = '';
-          document.getElementById('sumAprobadosInter').value = '';
-          document.getElementById('sumAprobadosServi').value = '';
-          document.getElementById('sumAliado').value = '';
+      callAppsScript('procesarSolicitud', formData)
+        .then(response => {
+          if (response.success) {
+            const successMessage = `Se generó solicitud de recolección exitosamente. #Radicado: ${response.radicado}`;
+            showToast(successMessage, 'success');
+            solicitudForm.reset();
+            limpiarYDesactivarCampos();
+          } else {
+            showToast(response.message || 'Error al procesar la solicitud.', 'error');
+          }
+          mostrarLoading(false);
+        });
+    }
+
+    solicitudForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+      if (!validarFormulario()) {
+        return;
+      }
+      const aliadoSeleccionado = document.getElementById('aliado').value;
+      if (aliadoSeleccionado === 'LOGISTICA PROPIA HEKA') {
+        document.getElementById('modalConfirmacionHeka').style.display = 'flex';
+      } else {
+        procesarYEnviarFormulario();
+      }
+    });
+
+    document.getElementById('btnCancelarModal').addEventListener('click', function() {
+      document.getElementById('modalConfirmacionHeka').style.display = 'none';
+    });
+    document.getElementById('btnFinalizarModal').addEventListener('click', function() {
+      document.getElementById('modalConfirmacionHeka').style.display = 'none';
+      procesarYEnviarFormulario();
+    });
+
+    const recogidaCards = document.querySelectorAll('#formPanel .aliado-card');
+    const aliadoInput = document.getElementById('aliado');
+
+    if (recogidaCards.length > 0) {
+      recogidaCards.forEach(card => {
+        card.addEventListener('click', function() {
+          recogidaCards.forEach(c => c.classList.remove('selected'));
+          this.classList.add('selected');
+          const aliadoSeleccionado = this.getAttribute('data-value');
+          aliadoInput.value = aliadoSeleccionado;
+          actualizarOpcionesDespachos();
+        });
+      });
+    }
+
+    // --- LÓGICA BUSCAR ESTADOS (RECOGIDAS) ---
+    const searchTypeSelect = document.getElementById('searchType');
+    const searchValueInput = document.getElementById('searchValue');
+    const searchButton = document.getElementById('btnBuscar');
+    const clearFilterButton = document.getElementById('btnLimpiar');
+    const tablaResultados = document.getElementById('tablaResultados');
+    const sinResultados = document.getElementById('sinResultados');
+
+    function renderizarTabla(data) {
+      tablaResultados.innerHTML = '';
+      sinResultados.style.display = 'none';
+      
+      const horaActual = new Date().getHours();
+
+      if (data && Array.isArray(data) && data.length > 0) {
+        data.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+        
+        data.forEach(row => {
+          const fecha = new Date(row.fecha).toLocaleString('es-CO', { timeZone: 'America/Bogota' });
+          const aliado = row.aliado || 'N/A';
+          const ciudad = row.ciudad || 'N/A';
+          const direccion = row.direccion || 'N/A';
+          const estado = row.estado || 'Pendiente'; 
+
+          let badgeColor = '';
+          let badgeText = '#fff';
+          let icon = '';
+
+          if (estado === 'Asignada siguiente día') {
+            if (horaActual < 9) {
+              badgeColor = '#198754'; 
+              icon = '<i class="bi bi-check-circle-fill"></i>';
+            } else {
+              badgeColor = '#0d6efd';
+              icon = '<i class="bi bi-clock-fill"></i>';
+            }
+          }
+          else {
+            switch (estado) {
+              case 'Asignada':
+                  badgeColor = '#198754'; 
+                  icon = '<i class="bi bi-check-circle-fill"></i>';
+                  break;
+              case 'Cancelada':
+                  badgeColor = '#dc3545'; 
+                  icon = '<i class="bi bi-x-circle-fill"></i>';
+                  break;
+              case 'No Recogida':
+                  badgeColor = '#6c757d'; 
+                  icon = '<i class="bi bi-x-diamond-fill"></i>';
+                  break;
+              case 'Re-Asignada':
+                  badgeColor = '#fd7e14'; 
+                  icon = '<i class="bi bi-arrow-repeat"></i>';
+                  break;
+              case 'Efectiva':
+                  badgeColor = '#0d6efd'; 
+                  icon = '<i class="bi bi-box-seam"></i>';
+                  break;
+              default:
+                  badgeColor = '#FDB813'; 
+                  icon = '<i class="bi bi-clock-history"></i>';
+                  break;
+            }
+          }
+
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${fecha}</td>
+            <td>${aliado}</td>
+            <td>${ciudad}</td>
+            <td>${direccion}</td>
+            <td>
+              <span style="background-color: ${badgeColor}; color: ${badgeText}; padding: 6px 12px; border-radius: 20px; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;">
+                ${icon} ${estado}
+              </span>
+            </td>
+          `;
+          tablaResultados.appendChild(tr);
+        });
+      } else {
+        sinResultados.style.display = 'block';
+      }
+    }
+
+    function cargarEstadoRecogidas() {
+      const searchType = searchTypeSelect.value;
+      const searchValue = searchValueInput.value.trim();
+      if (!searchValue) {
+        showToast('Por favor, ingresa un valor para buscar.', 'error');
+        return;
+      }
+      console.log(`cargarEstadoRecogidas llamada con tipo: ${searchType}, valor: ${searchValue}`);
+      mostrarLoading(true);
+      
+      callAppsScript('obtenerDatosHoja', { searchType, searchValue })
+        .then(data => {
+          renderizarTabla(data);
+          mostrarLoading(false);
+        });
+    }
+
+    searchButton.addEventListener('click', cargarEstadoRecogidas);
+    searchValueInput.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        cargarEstadoRecogidas();
+      }
+    });
+    clearFilterButton.addEventListener('click', function() {
+      searchValueInput.value = '';
+      document.getElementById('tablaResultados').innerHTML = '';
+      document.getElementById('sinResultados').style.display = 'none';
+    });
+
+    // --- LÓGICA FORMULARIO SUMINISTROS ---
+    
+    let sumLocationsData = [];
+    const sumCedulaInput = document.getElementById('sumDocumento');
+    const suministrosForm = document.getElementById('suministrosForm');
+
+    function limpiarYDesactivarCamposSuministros() {
+        const selectsToClear = ['sumCiudad', 'sumDireccion'];
+        selectsToClear.forEach(id => {
+            const select = document.getElementById(id);
+            select.innerHTML = `<option value="">Busca una cédula para ver las opciones</option>`;
+            select.disabled = true;
+        });
+        document.getElementById('sumNombre').value = '';
+        document.getElementById('sumSeller').value = '';
+        document.getElementById('sumCelular').value = '';
+        document.getElementById('sumInterrapidisimoCode').value = '';
+        document.getElementById('sumAprobadosInter').value = '';
+        document.getElementById('sumAprobadosServi').value = '';
+        document.getElementById('sumAliado').value = '';
+        
+        document.querySelectorAll('#suministrosPanel .aliado-card').forEach(c => c.classList.remove('selected'));
+        document.querySelectorAll('.insumo-card').forEach(c => c.classList.remove('selected'));
+        document.getElementById('sumTipoInsumo').value = '';
+        
+        document.getElementById('sumTipoInsumoContainer').style.display = 'none';
+        document.getElementById('insumoServi').style.display = 'none';
+        document.getElementById('insumoInter').style.display = 'none';
+        
+        sumLocationsData = [];
+    }
+
+    sumCedulaInput.addEventListener('blur', function() {
+      const cedula = this.value.trim();
+      if (cedula) {
+        buscarYllenarDatosSuministros(cedula);
+      } else {
+        limpiarYDesactivarCamposSuministros();
+      }
+    });
+
+    sumCedulaInput.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        this.blur();
+      }
+    });
+
+    function buscarYllenarDatosSuministros(cedula) {
+      console.log("Iniciando búsqueda SUMINISTROS para cédula:", cedula);
+      mostrarLoading(true);
+      limpiarYDesactivarCamposSuministros();
+      document.getElementById('sumAprobadosInter').value = 'Consultando...';
+      document.getElementById('sumAprobadosServi').value = 'Consultando...';
+      
+      callAppsScript('buscarPorCedula', { cedula })
+        .then(data => {
+          if (data && data.ok) {
+            document.getElementById('sumNombre').value = data.nombre || '';
+            const sellerId = data.companyId || '';
+            document.getElementById('sumSeller').value = sellerId;
+            
+            if (data.locations && data.locations.length > 0) {
+              sumLocationsData = data.locations;
+              poblarSelectsSuministros();
+            }
+            
+            if (sellerId) {
+              callAppsScript('obtenerCantidadGuias', { centroCosto: sellerId })
+                .then(cantidades => {
+                  document.getElementById('sumAprobadosInter').value = cantidades.inter;
+                  document.getElementById('sumAprobadosServi').value = cantidades.servi;
+                  mostrarLoading(false);
+                  showToast('Información encontrada para Suministros.', 'success');
+                });
+            } else {
+               document.getElementById('sumAprobadosInter').value = '0';
+               document.getElementById('sumAprobadosServi').value = '0';
+               mostrarLoading(false);
+               showToast('Información encontrada para Suministros.', 'success');
+            }
+
+          } else {
+            const msg = (data && data.msg) ? data.msg : 'No se pudo obtener la información.';
+            showToast(msg, 'error');
+            limpiarYDesactivarCamposSuministros();
+            mostrarLoading(false);
+          }
+        });
+    }
+
+    function poblarSelectsSuministros() {
+      const ciudadSelect = document.getElementById('sumCiudad');
+      const direccionSelect = document.getElementById('sumDireccion');
+      const uniqueCities = [...new Set(sumLocationsData.map(loc => loc.city))];
+      
+      ciudadSelect.innerHTML = '<option value="" selected disabled>Selecciona una ciudad</option>';
+      uniqueCities.forEach(city => ciudadSelect.add(new Option(city, city)));
+      ciudadSelect.disabled = false;
+      
+      direccionSelect.innerHTML = '<option value="" selected disabled>Selecciona una dirección</option>';
+      sumLocationsData.forEach(loc => direccionSelect.add(new Option(loc.address, loc.address)));
+      direccionSelect.disabled = false;
+    }
+
+    document.getElementById('sumCiudad').addEventListener('change', function() {
+      const selectedCity = this.value;
+      const direccionSelect = document.getElementById('sumDireccion');
+      
+      if (selectedCity) {
+        const filteredLocations = sumLocationsData.filter(loc => loc.city === selectedCity);
+        direccionSelect.innerHTML = '<option value="" selected disabled>Selecciona una dirección</option>';
+        filteredLocations.forEach(loc => direccionSelect.add(new Option(loc.address, loc.address)));
+        
+        if (filteredLocations.length > 0 && filteredLocations[0].interrapidisimoCode) {
+           document.getElementById('sumInterrapidisimoCode').value = filteredLocations[0].interrapidisimoCode;
+        }
+      } else {
+        direccionSelect.innerHTML = '<option value="" selected disabled>Selecciona una dirección</option>';
+      }
+    });
+
+    document.getElementById('sumDireccion').addEventListener('change', function() {
+      const selectedAddress = this.value;
+      const location = sumLocationsData.find(loc => loc.address === selectedAddress);
+      if (location) {
+        document.getElementById('sumCelular').value = location.phone || '';
+        document.getElementById('sumInterrapidisimoCode').value = location.interrapidisimoCode || '';
+      }
+    });
+
+    const aliadoCards = document.querySelectorAll('#suministrosPanel .aliado-card');
+    const sumAliadoInput = document.getElementById('sumAliado');
+    const insumoContainer = document.getElementById('sumTipoInsumoContainer');
+    const insumoServi = document.getElementById('insumoServi');
+    const insumoInter = document.getElementById('insumoInter');
+
+    if (aliadoCards.length > 0) {
+      aliadoCards.forEach(card => {
+        card.addEventListener('click', function() {
+          aliadoCards.forEach(c => c.classList.remove('selected'));
+          this.classList.add('selected');
+          sumAliadoInput.value = this.getAttribute('data-value');
           
-          document.querySelectorAll('#suministrosPanel .aliado-card').forEach(c => c.classList.remove('selected'));
+          insumoContainer.style.display = 'block';
           document.querySelectorAll('.insumo-card').forEach(c => c.classList.remove('selected'));
           document.getElementById('sumTipoInsumo').value = '';
-          
-          document.getElementById('sumTipoInsumoContainer').style.display = 'none';
-          document.getElementById('insumoServi').style.display = 'none';
-          document.getElementById('insumoInter').style.display = 'none';
-          
-          sumLocationsData = [];
-      }
-  
-      sumCedulaInput.addEventListener('blur', async function() {
-        const cedula = this.value.trim();
-        if (cedula) {
-          await buscarYllenarDatosSuministros(cedula);
-        } else {
-          limpiarYDesactivarCamposSuministros();
-        }
-      });
-  
-      sumCedulaInput.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          this.blur();
-        }
-      });
-  
-      async function buscarYllenarDatosSuministros(cedula) {
-        console.log("Iniciando búsqueda SUMINISTROS para cédula:", cedula);
-        mostrarLoading(true);
-        limpiarYDesactivarCamposSuministros();
-        document.getElementById('sumAprobadosInter').value = 'Consultando...';
-        document.getElementById('sumAprobadosServi').value = 'Consultando...';
-        
-        const data = await callGoogleScript('buscarDatosUsuario', { cedula });
-  
-        if (data && data.ok) {
-          document.getElementById('sumNombre').value = data.nombre || '';
-          const sellerId = data.companyId || '';
-          document.getElementById('sumSeller').value = sellerId;
-          
-          if (data.locations && data.locations.length > 0) {
-            sumLocationsData = data.locations;
-            poblarSelectsSuministros();
+
+          if (sumAliadoInput.value === 'SERVIENTREGA') {
+            insumoServi.style.display = 'grid';
+            insumoInter.style.display = 'none';
+          } else if (sumAliadoInput.value === 'INTER RAPIDISIMO') {
+            insumoServi.style.display = 'none';
+            insumoInter.style.display = 'grid';
           }
-          
-          if (sellerId) {
-            const cantidades = await callGoogleScript('obtenerCantidadGuias', { centroCosto: sellerId });
-            document.getElementById('sumAprobadosInter').value = cantidades.inter;
-            document.getElementById('sumAprobadosServi').value = cantidades.servi;
-            mostrarLoading(false);
-            showToast('Información encontrada para Suministros.', 'success');
-          } else {
-             document.getElementById('sumAprobadosInter').value = '0';
-             document.getElementById('sumAprobadosServi').value = '0';
-             mostrarLoading(false);
-             showToast('Información encontrada para Suministros.', 'success');
-          }
-  
-        } else {
-          const msg = (data && data.msg) ? data.msg : 'No se pudo obtener la información.';
-          showToast(msg, 'error');
-          limpiarYDesactivarCamposSuministros();
-          mostrarLoading(false);
-        }
-      }
-  
-      function poblarSelectsSuministros() {
-        const ciudadSelect = document.getElementById('sumCiudad');
-        const direccionSelect = document.getElementById('sumDireccion');
-        const uniqueCities = [...new Set(sumLocationsData.map(loc => loc.city))];
-        
-        ciudadSelect.innerHTML = '<option value="" selected disabled>Selecciona una ciudad</option>';
-        uniqueCities.forEach(city => ciudadSelect.add(new Option(city, city)));
-        ciudadSelect.disabled = false;
-        
-        direccionSelect.innerHTML = '<option value="" selected disabled>Selecciona una dirección</option>';
-        sumLocationsData.forEach(loc => direccionSelect.add(new Option(loc.address, loc.address)));
-        direccionSelect.disabled = false;
-      }
-  
-      document.getElementById('sumCiudad').addEventListener('change', function() {
-        const selectedCity = this.value;
-        const direccionSelect = document.getElementById('sumDireccion');
-        
-        if (selectedCity) {
-          const filteredLocations = sumLocationsData.filter(loc => loc.city === selectedCity);
-          direccionSelect.innerHTML = '<option value="" selected disabled>Selecciona una dirección</option>';
-          filteredLocations.forEach(loc => direccionSelect.add(new Option(loc.address, loc.address)));
-          
-          if (filteredLocations.length > 0 && filteredLocations[0].interrapidisimoCode) {
-             document.getElementById('sumInterrapidisimoCode').value = filteredLocations[0].interrapidisimoCode;
-          }
-        } else {
-          direccionSelect.innerHTML = '<option value="" selected disabled>Selecciona una dirección</option>';
-        }
-      });
-  
-      document.getElementById('sumDireccion').addEventListener('change', function() {
-        const selectedAddress = this.value;
-        const location = sumLocationsData.find(loc => loc.address === selectedAddress);
-        if (location) {
-          document.getElementById('sumCelular').value = location.phone || '';
-          document.getElementById('sumInterrapidisimoCode').value = location.interrapidisimoCode || '';
-        }
-      });
-  
-      const aliadoCards = document.querySelectorAll('#suministrosPanel .aliado-card');
-      const sumAliadoInput = document.getElementById('sumAliado');
-      const insumoContainer = document.getElementById('sumTipoInsumoContainer');
-      const insumoServi = document.getElementById('insumoServi');
-      const insumoInter = document.getElementById('insumoInter');
-  
-      if (aliadoCards.length > 0) {
-        aliadoCards.forEach(card => {
-          card.addEventListener('click', function() {
-            aliadoCards.forEach(c => c.classList.remove('selected'));
-            this.classList.add('selected');
-            sumAliadoInput.value = this.getAttribute('data-value');
-            
-            insumoContainer.style.display = 'block';
-            document.querySelectorAll('.insumo-card').forEach(c => c.classList.remove('selected'));
-            document.getElementById('sumTipoInsumo').value = '';
-  
-            if (sumAliadoInput.value === 'SERVIENTREGA') {
-              insumoServi.style.display = 'grid';
-              insumoInter.style.display = 'none';
-            } else if (sumAliadoInput.value === 'INTER RAPIDISIMO') {
-              insumoServi.style.display = 'none';
-              insumoInter.style.display = 'grid';
-            }
-          });
         });
-      }
-  
-      const insumoCards = document.querySelectorAll('.insumo-card');
-      const sumTipoInsumoInput = document.getElementById('sumTipoInsumo');
-  
-      if (insumoCards.length > 0) {
-        insumoCards.forEach(card => {
-          card.addEventListener('click', function() {
-            insumoCards.forEach(c => c.classList.remove('selected'));
-            this.classList.add('selected');
-            sumTipoInsumoInput.value = this.getAttribute('data-value');
-          });
+      });
+    }
+
+    const insumoCards = document.querySelectorAll('.insumo-card');
+    const sumTipoInsumoInput = document.getElementById('sumTipoInsumo');
+
+    if (insumoCards.length > 0) {
+      insumoCards.forEach(card => {
+        card.addEventListener('click', function() {
+          insumoCards.forEach(c => c.classList.remove('selected'));
+          this.classList.add('selected');
+          sumTipoInsumoInput.value = this.getAttribute('data-value');
         });
-      }
-  
-      // --- NUEVA FUNCIÓN PARA MOSTRAR ERROR DE VALIDACIÓN ---
-      function showValidationErrorSuministros(mensaje) {
-        document.getElementById('mensajeErrorSuministros').innerText = mensaje;
-        document.getElementById('modalErrorSuministros').style.display = 'flex';
-      }
-  
-      document.getElementById('btnCerrarErrorSuministros').addEventListener('click', function() {
-        document.getElementById('modalErrorSuministros').style.display = 'none';
       });
-  
-  
-      suministrosForm.addEventListener('submit', async function(e) {
-        e.preventDefault();
-  
-        // --- VALIDACIÓN DE SUMINISTROS (NUEVA LÓGICA) ---
-        const sumAliadoInput = document.getElementById('sumAliado');
-        const sumAprobadosInter = parseInt(document.getElementById('sumAprobadosInter').value) || 0;
-        const sumAprobadosServi = parseInt(document.getElementById('sumAprobadosServi').value) || 0;
-  
-        let errorMensaje = "";
-  
-        if (sumAliadoInput.value === 'INTER RAPIDISIMO') {
-          if (sumAprobadosInter === 0) {
-            if (sumAprobadosServi > 0) {
-              errorMensaje = "Actualmente tienes 0 suministros aprobados con Inter Rapidísimo. Tienes " + sumAprobadosServi + " disponibles con Servientrega. Por favor selecciona Servientrega o genera envíos este mes con Inter para desbloquear este beneficio.";
-            } else {
-              errorMensaje = "Actualmente no tienes suministros disponibles para Inter Rapidísimo ni para Servientrega (0 en ambos). Debes generar envíos para acceder a este beneficio el próximo mes.";
-            }
-          }
-        } else if (sumAliadoInput.value === 'SERVIENTREGA') {
-          if (sumAprobadosServi === 0) {
-            if (sumAprobadosInter > 0) {
-              errorMensaje = "Actualmente tienes 0 suministros aprobados con Servientrega. Tienes " + sumAprobadosInter + " disponibles con Inter Rapidísimo. Por favor selecciona Inter o genera envíos este mes con Servientrega para desbloquear este beneficio.";
-            } else {
-              errorMensaje = "Actualmente no tienes suministros disponibles para Servientrega ni para Inter Rapidísimo (0 en ambos). Debes generar envíos para acceder a este beneficio el próximo mes.";
-            }
-          }
-        }
-  
-        if (errorMensaje !== "") {
-          showValidationErrorSuministros(errorMensaje);
-          return; // Detiene el envío aquí
-        }
-  
-  
-        // --- CONTINÚAN VALIDACIONES NORMALES ---
-        const emailInput = document.getElementById('sumEmail');
-        const aliadoInput = document.getElementById('sumAliado');
-        const tipoInsumoInput = document.getElementById('sumTipoInsumo');
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  
-        if (!emailRegex.test(emailInput.value.trim())) {
-          showToast('Por favor ingresa un correo válido.', 'error');
-          emailInput.focus();
-          return;
-        }
-  
-        if (aliadoInput.value === "") {
-          showToast('Por favor selecciona un aliado logístico.', 'error');
-          aliadoInput.focus();
-          return;
-        }
-        
-        if (tipoInsumoInput.value === "") {
-          showToast('Por favor selecciona un tipo de insumo.', 'error');
-          return;
-        }
-        
-        if (!document.getElementById('sumCiudad').value || !document.getElementById('sumDireccion').value) {
-           showToast('Por favor completa la información de ubicación (Ciudad y Dirección).', 'error');
-           return;
-        }
-  
-        const formData = {
-          documento: document.getElementById('sumDocumento').value,
-          nombre: document.getElementById('sumNombre').value,
-          seller: document.getElementById('sumSeller').value,
-          email: emailInput.value.trim(),
-          ciudad: document.getElementById('sumCiudad').value,
-          direccion: document.getElementById('sumDireccion').value,
-          celular: document.getElementById('sumCelular').value,
-          aliado: aliadoInput.value,
-          interrapidisimoCode: document.getElementById('sumInterrapidisimoCode').value,
-          tipoInsumo: tipoInsumoInput.value,
-          aprobadosInter: document.getElementById('sumAprobadosInter').value,
-          aprobadosServi: document.getElementById('sumAprobadosServi').value
-        };
-  
-        mostrarLoading(true);
-  
-        const response = await callGoogleScript('procesarSolicitudSuministros', formData);
-        try {
-          if (response.success) {
-            const radicado = response.radicado;
-            const successMessage = `Se generó solicitud de suministros exitosamente. #Radicado: ${radicado}`;
-            showToast(successMessage, 'success');
-            suministrosForm.reset();
-            limpiarYDesactivarCamposSuministros();
-          } else {
-            showToast(response.message || 'Error al enviar solicitud.', 'error');
-          }
-        } catch (e) {
-          console.error("Error interno al limpiar formulario:", e);
-          showToast("Solicitud procesada, pero hubo un error visual.", 'success');
-        } finally {
-          mostrarLoading(false);
-        }
-      });
-  
-      // --- LÓGICA BUSCAR ESTADO SUMINISTROS ---
-      
-      const searchTypeSelectSuministros = document.getElementById('searchTypeSuministros');
-      const searchValueInputSuministros = document.getElementById('searchValueSuministros');
-      const searchButtonSuministros = document.getElementById('btnBuscarSuministros');
-      const clearFilterButtonSuministros = document.getElementById('btnLimpiarSuministros');
-      const tablaResultadosSuministros = document.getElementById('tablaResultadosSuministros');
-      const sinResultadosSuministros = document.getElementById('sinResultadosSuministros');
-  
-      function renderizarTablaSuministros(data) {
-        tablaResultadosSuministros.innerHTML = '';
-        sinResultadosSuministros.style.display = 'none';
-        
-        if (data && Array.isArray(data) && data.length > 0) {
-          data.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
-          
-          data.forEach(row => {
-            const fecha = new Date(row.fecha).toLocaleString('es-CO', { timeZone: 'America/Bogota' });
-            const radicado = row.radicado || 'N/A';
-            const aliado = row.aliado || 'N/A';
-            const tipoInsumo = row.tipoInsumo || 'N/A';
-            const ciudad = row.ciudad || 'N/A';
-            const cantidad = row.cantidad || '0';
-  
-            const estado = row.estado || 'Pendiente'; 
-            const guia = row.guia || 'Pendiente';
-  
-            let badgeColor = '';
-            let badgeText = '#fff';
-            let icon = '';
-  
-            switch (estado) {
-              case 'En Alistamiento':
-                badgeColor = '#fd7e14'; 
-                badgeText = '#fff';
-                icon = '<i class="bi bi-cpu"></i>'; 
-                break;
-              case 'Despachado':
-                badgeColor = '#198754'; 
-                badgeText = '#fff';
-                icon = '<i class="bi bi-truck"></i>'; 
-                break;
-              default:
-                badgeColor = '#6c757d'; 
-                badgeText = '#fff';
-                icon = '<i class="bi bi-question-circle"></i>';
-                break;
-            }
-  
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-              <td>${fecha}</td>
-              <td><span style="font-weight:bold; color: #FDB813;">#${radicado}</span></td>
-              <td>${aliado}</td>
-              <td>${tipoInsumo}</td>
-              <td>${ciudad}</td>
-              <td>${cantidad}</td>
-              <td>
-                <span style="background-color: ${badgeColor}; color: ${badgeText}; padding: 6px 12px; border-radius: 20px; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;">
-                  ${icon} ${estado}
-                </span>
-              </td>
-              <td>${guia}</td>
-            `;
-            tablaResultadosSuministros.appendChild(tr);
-          });
-        } else {
-          sinResultadosSuministros.style.display = 'block';
-        }
-      }
-  
-      async function cargarEstadoSuministros() {
-        const searchType = searchTypeSelectSuministros.value;
-        const searchValue = searchValueInputSuministros.value.trim();
-        
-        if (!searchValue) {
-          showToast('Por favor, ingresa un valor para buscar.', 'error');
-          return;
-        }
-        
-        console.log(`cargarEstadoSuministros llamada con tipo: ${searchType}, valor: ${searchValue}`);
-        mostrarLoading(true);
-        
-        const data = await callGoogleScript('obtenerEstadoSuministros', { searchType, searchValue });
-        
-        renderizarTablaSuministros(data);
-        mostrarLoading(false);
-      }
-  
-      searchButtonSuministros.addEventListener('click', cargarEstadoSuministros);
-      
-      searchValueInputSuministros.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          cargarEstadoSuministros();
-        }
-      });
-  
-      clearFilterButtonSuministros.addEventListener('click', function() {
-        searchValueInputSuministros.value = '';
-        document.getElementById('tablaResultadosSuministros').innerHTML = '';
-        document.getElementById('sinResultadosSuministros').style.display = 'none';
-      });
-  
-      // --- UTILIDADES ---
-      function mostrarLoading(show) {
-          document.getElementById('loading').style.display = show ? 'flex' : 'none';
-      }
-  
-      function showToast(message, type = 'success') {
-          const existingToast = document.querySelector('.toast');
-          if (existingToast) {
-            existingToast.remove();
-          }
-          const toast = document.createElement('div');
-          toast.className = `toast ${type}`;
-          const icon = type === 'success' 
-            ? '<i class="bi bi-check-circle-fill"></i>' 
-            : '<i class="bi bi-exclamation-circle-fill"></i>';
-          toast.innerHTML = `${icon}<div>${message}</div>`;
-          document.body.appendChild(toast);
-          setTimeout(() => {
-              toast.style.animation = 'slideIn 0.3s ease reverse';
-              setTimeout(() => toast.remove(), 300);
-          }, 4000);
-      }
-  
+    }
+
+    // --- NUEVA FUNCIÓN PARA MOSTRAR ERROR DE VALIDACIÓN ---
+    function showValidationErrorSuministros(mensaje) {
+      document.getElementById('mensajeErrorSuministros').innerText = mensaje;
+      document.getElementById('modalErrorSuministros').style.display = 'flex';
+    }
+
+    document.getElementById('btnCerrarErrorSuministros').addEventListener('click', function() {
+      document.getElementById('modalErrorSuministros').style.display = 'none';
     });
-    </script>
+
+
+    suministrosForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+
+      // --- VALIDACIÓN DE SUMINISTROS (NUEVA LÓGICA) ---
+      const sumAliadoInput = document.getElementById('sumAliado');
+      const sumAprobadosInter = parseInt(document.getElementById('sumAprobadosInter').value) || 0;
+      const sumAprobadosServi = parseInt(document.getElementById('sumAprobadosServi').value) || 0;
+
+      let errorMensaje = "";
+
+      if (sumAliadoInput.value === 'INTER RAPIDISIMO') {
+        if (sumAprobadosInter === 0) {
+          if (sumAprobadosServi > 0) {
+            errorMensaje = "Actualmente tienes 0 suministros aprobados con Inter Rapidísimo. Tienes " + sumAprobadosServi + " disponibles con Servientrega. Por favor selecciona Servientrega o genera envíos este mes con Inter para desbloquear este beneficio.";
+          } else {
+            errorMensaje = "Actualmente no tienes suministros disponibles para Inter Rapidísimo ni para Servientrega (0 en ambos). Debes generar envíos para acceder a este beneficio el próximo mes.";
+          }
+        }
+      } else if (sumAliadoInput.value === 'SERVIENTREGA') {
+        if (sumAprobadosServi === 0) {
+          if (sumAprobadosInter > 0) {
+            errorMensaje = "Actualmente tienes 0 suministros aprobados con Servientrega. Tienes " + sumAprobadosInter + " disponibles con Inter Rapidísimo. Por favor selecciona Inter o genera envíos este mes con Servientrega para desbloquear este beneficio.";
+          } else {
+            errorMensaje = "Actualmente no tienes suministros disponibles para Servientrega ni para Inter Rapidísimo (0 en ambos). Debes generar envíos para acceder a este beneficio el próximo mes.";
+          }
+        }
+      }
+
+      if (errorMensaje !== "") {
+        showValidationErrorSuministros(errorMensaje);
+        return; // Detiene el envío aquí
+      }
+
+
+      // --- CONTINÚAN VALIDACIONES NORMALES ---
+      const emailInput = document.getElementById('sumEmail');
+      const aliadoInput = document.getElementById('sumAliado');
+      const tipoInsumoInput = document.getElementById('sumTipoInsumo');
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+      if (!emailRegex.test(emailInput.value.trim())) {
+        showToast('Por favor ingresa un correo válido.', 'error');
+        emailInput.focus();
+        return;
+      }
+
+      if (aliadoInput.value === "") {
+        showToast('Por favor selecciona un aliado logístico.', 'error');
+        aliadoInput.focus();
+        return;
+      }
+      
+      if (tipoInsumoInput.value === "") {
+        showToast('Por favor selecciona un tipo de insumo.', 'error');
+        return;
+      }
+      
+      if (!document.getElementById('sumCiudad').value || !document.getElementById('sumDireccion').value) {
+         showToast('Por favor completa la información de ubicación (Ciudad y Dirección).', 'error');
+         return;
+      }
+
+      const formData = {
+        documento: document.getElementById('sumDocumento').value,
+        nombre: document.getElementById('sumNombre').value,
+        seller: document.getElementById('sumSeller').value,
+        email: emailInput.value.trim(),
+        ciudad: document.getElementById('sumCiudad').value,
+        direccion: document.getElementById('sumDireccion').value,
+        celular: document.getElementById('sumCelular').value,
+        aliado: aliadoInput.value,
+        interrapidisimoCode: document.getElementById('sumInterrapidisimoCode').value,
+        tipoInsumo: tipoInsumoInput.value,
+        aprobadosInter: document.getElementById('sumAprobadosInter').value,
+        aprobadosServi: document.getElementById('sumAprobadosServi').value
+      };
+
+      mostrarLoading(true);
+
+      callAppsScript('procesarSolicitudSuministros', formData)
+        .then(response => {
+          try {
+            if (response.success) {
+              const radicado = response.radicado;
+              const successMessage = `Se generó solicitud de suministros exitosamente. #Radicado: ${radicado}`;
+              showToast(successMessage, 'success');
+              suministrosForm.reset();
+              limpiarYDesactivarCamposSuministros();
+            } else {
+              showToast(response.message || 'Error al enviar solicitud.', 'error');
+            }
+          } catch (e) {
+            console.error("Error interno al limpiar formulario:", e);
+            showToast("Solicitud procesada, pero hubo un error visual.", 'success');
+          } finally {
+            mostrarLoading(false);
+          }
+        });
+    });
+
+    // --- LÓGICA BUSCAR ESTADO SUMINISTROS ---
+    
+    const searchTypeSelectSuministros = document.getElementById('searchTypeSuministros');
+    const searchValueInputSuministros = document.getElementById('searchValueSuministros');
+    const searchButtonSuministros = document.getElementById('btnBuscarSuministros');
+    const clearFilterButtonSuministros = document.getElementById('btnLimpiarSuministros');
+    const tablaResultadosSuministros = document.getElementById('tablaResultadosSuministros');
+    const sinResultadosSuministros = document.getElementById('sinResultadosSuministros');
+
+    function renderizarTablaSuministros(data) {
+      tablaResultadosSuministros.innerHTML = '';
+      sinResultadosSuministros.style.display = 'none';
+      
+      if (data && Array.isArray(data) && data.length > 0) {
+        data.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+        
+        data.forEach(row => {
+          const fecha = new Date(row.fecha).toLocaleString('es-CO', { timeZone: 'America/Bogota' });
+          const radicado = row.radicado || 'N/A';
+          const aliado = row.aliado || 'N/A';
+          const tipoInsumo = row.tipoInsumo || 'N/A';
+          const ciudad = row.ciudad || 'N/A';
+          const cantidad = row.cantidad || '0';
+
+          const estado = row.estado || 'Pendiente'; 
+          const guia = row.guia || 'Pendiente';
+
+          let badgeColor = '';
+          let badgeText = '#fff';
+          let icon = '';
+
+          switch (estado) {
+            case 'En Alistamiento':
+              badgeColor = '#fd7e14'; 
+              badgeText = '#fff';
+              icon = '<i class="bi bi-cpu"></i>'; 
+              break;
+            case 'Despachado':
+              badgeColor = '#198754'; 
+              badgeText = '#fff';
+              icon = '<i class="bi bi-truck"></i>'; 
+              break;
+            default:
+              badgeColor = '#6c757d'; 
+              badgeText = '#fff';
+              icon = '<i class="bi bi-question-circle"></i>';
+              break;
+          }
+
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${fecha}</td>
+            <td><span style="font-weight:bold; color: #FDB813;">#${radicado}</span></td>
+            <td>${aliado}</td>
+            <td>${tipoInsumo}</td>
+            <td>${ciudad}</td>
+            <td>${cantidad}</td>
+            <td>
+              <span style="background-color: ${badgeColor}; color: ${badgeText}; padding: 6px 12px; border-radius: 20px; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;">
+                ${icon} ${estado}
+              </span>
+            </td>
+            <td>${guia}</td>
+          `;
+          tablaResultadosSuministros.appendChild(tr);
+        });
+      } else {
+        sinResultadosSuministros.style.display = 'block';
+      }
+    }
+
+    function cargarEstadoSuministros() {
+      const searchType = searchTypeSelectSuministros.value;
+      const searchValue = searchValueInputSuministros.value.trim();
+      
+      if (!searchValue) {
+        showToast('Por favor, ingresa un valor para buscar.', 'error');
+        return;
+      }
+      
+      console.log(`cargarEstadoSuministros llamada con tipo: ${searchType}, valor: ${searchValue}`);
+      mostrarLoading(true);
+      
+      callAppsScript('obtenerEstadoSuministros', { searchType, searchValue })
+        .then(data => {
+          renderizarTablaSuministros(data);
+          mostrarLoading(false);
+        });
+    }
+
+    searchButtonSuministros.addEventListener('click', cargarEstadoSuministros);
+    
+    searchValueInputSuministros.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        cargarEstadoSuministros();
+      }
+    });
+
+    clearFilterButtonSuministros.addEventListener('click', function() {
+      searchValueInputSuministros.value = '';
+      document.getElementById('tablaResultadosSuministros').innerHTML = '';
+      document.getElementById('sinResultadosSuministros').style.display = 'none';
+    });
+
+    // --- UTILIDADES ---
+    function mostrarLoading(show) {
+        document.getElementById('loading').style.display = show ? 'flex' : 'none';
+    }
+
+    function showToast(message, type = 'success') {
+        const existingToast = document.querySelector('.toast');
+        if (existingToast) {
+          existingToast.remove();
+        }
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        const icon = type === 'success' 
+          ? '<i class="bi bi-check-circle-fill"></i>' 
+          : '<i class="bi bi-exclamation-circle-fill"></i>';
+        toast.innerHTML = `${icon}<div>${message}</div>`;
+        document.body.appendChild(toast);
+        setTimeout(() => {
+            toast.style.animation = 'slideIn 0.3s ease reverse';
+            setTimeout(() => toast.remove(), 300);
+        }, 4000);
+    }
+
+  });
+  </script>
 </body>
-</html>  
+</html>
