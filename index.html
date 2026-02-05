@@ -967,7 +967,7 @@
         });
     }
 
-    
+        
     function mostrarModalImagenes() {
       if (imagenesNotificaciones.length === 0) return;
       
@@ -976,6 +976,7 @@
       const indicadoresElement = document.getElementById('indicadoresImagenes');
       const btnAnterior = document.getElementById('btnAnteriorImagen');
       const btnSiguiente = document.getElementById('btnSiguienteImagen');
+      const modalFooter = modal.querySelector('.modal-footer'); // <-- AÑADE ESTA LÍNEA
       
       // Mostramos la imagen actual
       imagenElement.src = imagenesNotificaciones[indiceImagenActual];
@@ -1012,6 +1013,9 @@
         btnAnterior.style.display = 'none';
         btnSiguiente.innerHTML = '<i class="bi bi-x-circle"></i> Cerrar';
         btnSiguiente.className = 'btn btn-secondary'; // Botón negro
+
+        // Si solo hay una imagen, centramos el botón
+        modalFooter.style.justifyContent = 'center';        
       } else {
         btnAnterior.style.display = indiceImagenActual === 0 ? 'none' : 'flex';
         
@@ -1022,12 +1026,16 @@
           btnSiguiente.innerHTML = 'Siguiente <i class="bi bi-arrow-right"></i>';
           btnSiguiente.className = 'btn btn-primary'; // Botón amarillo
         }
+        // Si hay múltiples imágenes, usamos space-between
+        modalFooter.style.justifyContent = 'space-between';
       }
+        
+    
       
       // Simplemente mostramos el modal (el CSS ya maneja el resto)
       modal.style.display = 'flex';
     }
-    
+        
     // Event listeners para los botones del modal de imágenes
     document.getElementById('btnAnteriorImagen').addEventListener('click', function() {
       if (indiceImagenActual > 0) {
