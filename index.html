@@ -185,18 +185,7 @@
       .sidebar-overlay { display: none; }
     }
 
-    /* Estilos para el modal de imágenes */
-    #modalImagenesNotificaciones .modal-body {
-      padding: 20px 32px;
-    }
-    
-    #modalImagenesNotificaciones .modal-footer {
-      padding: 16px 32px 32px 32px;
-    }
-    
-    #modalImagenesNotificaciones .modal-footer > div {
-      flex: 1;
-    }
+  
 
     /* =================================================================
        ASEGURAR QUE EL MODAL DE IMÁGENES ESTÉ SIEMPRE POR ENCIMA
@@ -618,7 +607,8 @@
       </div>
       <div class="modal-body" style="text-align: center;">
         <img id="imagenNotificacion" src="" alt="Imagen de notificación" style="max-width: 100%; max-height: 400px; margin-bottom: 20px;">
-        <div id="contadorImagenes" style="margin-bottom: 15px; font-weight: bold;"></div>
+        <!-- REEMPLAZAMOS EL CONTADOR POR PUNTOS -->
+        <div id="indicadoresImagenes" style="margin-bottom: 15px;"></div>
       </div>
       <div class="modal-footer" style="justify-content: space-between;">
         <button class="btn btn-secondary" id="btnAnteriorImagen" style="display: none;">
@@ -630,7 +620,7 @@
         </button>
       </div>
     </div>
-  </div>  
+  </div>
     
 
   <div class="loading" id="loading">
@@ -744,7 +734,8 @@
         else if (targetPanel === 'form') {
           formPanel.style.display = 'block';
           // --- ¡AQUÍ AÑADIMOS LA LLAMADA! ---
-          cargarImagenesNotificaciones(); 
+          cargarYMostrarNotificaciones(); // Nueva función más simple
+           
         } else if (targetPanel === 'status') {
           statusPanel.style.display = 'block';
           document.getElementById('tablaResultados').innerHTML = '';
@@ -954,87 +945,87 @@
     let imagenesNotificaciones = [];
     let indiceImagenActual = 0;
     
-    function cargarImagenesNotificaciones() {
-      console.log("Cargando imágenes de notificaciones...");
+    // --- NUEVA FUNCIÓN SIMPLE ---
+    function cargarYMostrarNotificaciones() {
+      console.log("Cargando y mostrando notificaciones al entrar a 'Solicitar Recogida'");
       mostrarLoading(true);
       
       callAppsScript('obtenerImagenesNotificaciones')
         .then(response => {
           mostrarLoading(false);
-          console.log("Respuesta de imágenes:", response);
-          
           if (response && response.length > 0) {
             imagenesNotificaciones = response;
             indiceImagenActual = 0;
-            mostrarModalImagenes();
+            mostrarModalImagenes(); // Llama directamente a la función que muestra el modal
           } else {
-            console.log("No hay imágenes de notificaciones disponibles");
-            // Si no hay imágenes, verificamos si es LOGISTICA PROPIA HEKA
-            const aliadoSeleccionado = document.getElementById('aliado').value;
-            if (aliadoSeleccionado === 'LOGISTICA PROPIA HEKA') {
-              document.getElementById('modalConfirmacionHeka').style.display = 'flex';
-            } else {
-              // Si no es HEKA y no hay imágenes, procesamos directamente el formulario
-              procesarYEnviarFormulario();
-            }
+            console.log("No hay imágenes de notificaciones para mostrar.");
           }
         })
         .catch(error => {
           mostrarLoading(false);
           console.error('Error al cargar imágenes de notificaciones:', error);
-          // Si hay un error, verificamos si es LOGISTICA PROPIA HEKA
-          const aliadoSeleccionado = document.getElementById('aliado').value;
-          if (aliadoSeleccionado === 'LOGISTICA PROPIA HEKA') {
-            document.getElementById('modalConfirmacionHeka').style.display = 'flex';
-          } else {
-            // Si no es HEKA y hay error, procesamos directamente el formulario
-            procesarYEnviarFormulario();
-          }
         });
     }
+
     
     function mostrarModalImagenes() {
       if (imagenesNotificaciones.length === 0) return;
       
       const modal = document.getElementById('modalImagenesNotificaciones');
       const imagenElement = document.getElementById('imagenNotificacion');
-      const contadorElement = document.getElementById('contadorImagenes');
+      const indicadoresElement = document.getElementById('indicadoresImagenes');
       const btnAnterior = document.getElementById('btnAnteriorImagen');
       const btnSiguiente = document.getElementById('btnSiguienteImagen');
       
       // Mostramos la imagen actual
       imagenElement.src = imagenesNotificaciones[indiceImagenActual];
       
-      // Actualizamos el contador
-      contadorElement.textContent = `Imagen ${indiceImagenActual + 1} de ${imagenesNotificaciones.length}`;
+      // --- LÓGICA DE LOS INDICADORES (PUNTOS) ---
+      // Limpiamos los indicadores anteriores
+      indicadoresElement.innerHTML = '';
       
-      // Configuramos los botones
-      if (imagenesNotificaciones.length === 1) {
-        // Si solo hay una imagen, mostramos solo el botón de cerrar
-        btnAnterior.style.display = 'none';
-        btnSiguiente.innerHTML = '<i class="bi bi-x-circle"></i> Cerrar';
-      } else {
-        // Si hay múltiples imágenes
-        btnAnterior.style.display = indiceImagenActual === 0 ? 'none' : 'flex';
-        
-        if (indiceImagenActual === imagenesNotificaciones.length - 1) {
-          // Si estamos en la última imagen
-          btnSiguiente.innerHTML = '<i class="bi bi-x-circle"></i> Cerrar';
-        } else {
-          // Si no estamos en la última imagen
-          btnSiguiente.innerHTML = 'Siguiente <i class="bi bi-arrow-right"></i>';
+      if (imagenesNotificaciones.length > 1) {
+        // Si hay más de una imagen, creamos los puntos
+        for (let i = 0; i < imagenesNotificaciones.length; i++) {
+          const punto = document.createElement('span');
+          punto.style.display = 'inline-block';
+          punto.style.width = '10px';
+          punto.style.height = '10px';
+          punto.style.borderRadius = '50%';
+          punto.style.backgroundColor = (i === indiceImagenActual) ? 'var(--primary-yellow)' : 'var(--gray-500)';
+          punto.style.margin = '0 5px';
+          punto.style.cursor = 'pointer';
+          punto.setAttribute('data-indice', i);
+          
+          // Añadimos un evento para poder hacer clic en los puntos
+          punto.addEventListener('click', function() {
+            indiceImagenActual = parseInt(this.getAttribute('data-indice'));
+            mostrarModalImagenes();
+          });
+          
+          indicadoresElement.appendChild(punto);
         }
       }
       
-      // Forzamos la visibilidad del modal
+      // --- LÓGICA DE LOS BOTONES ---
+      if (imagenesNotificaciones.length === 1) {
+        btnAnterior.style.display = 'none';
+        btnSiguiente.innerHTML = '<i class="bi bi-x-circle"></i> Cerrar';
+        btnSiguiente.className = 'btn btn-secondary'; // Botón negro
+      } else {
+        btnAnterior.style.display = indiceImagenActual === 0 ? 'none' : 'flex';
+        
+        if (indiceImagenActual === imagenesNotificaciones.length - 1) {
+          btnSiguiente.innerHTML = '<i class="bi bi-x-circle"></i> Cerrar';
+          btnSiguiente.className = 'btn btn-secondary'; // Botón negro
+        } else {
+          btnSiguiente.innerHTML = 'Siguiente <i class="bi bi-arrow-right"></i>';
+          btnSiguiente.className = 'btn btn-primary'; // Botón amarillo
+        }
+      }
+      
+      // Simplemente mostramos el modal (el CSS ya maneja el resto)
       modal.style.display = 'flex';
-      modal.style.visibility = 'visible';
-      modal.style.opacity = '1';
-      
-      // Forzamos que esté por encima de todo
-      modal.style.zIndex = '99999';
-      
-      console.log("Modal de imágenes mostrado");
     }
     
     // Event listeners para los botones del modal de imágenes
@@ -1045,22 +1036,15 @@
       }
     });
     
+    // Event listener para el botón "Siguiente / Cerrar" del modal de imágenes
     document.getElementById('btnSiguienteImagen').addEventListener('click', function() {
       if (indiceImagenActual < imagenesNotificaciones.length - 1) {
+        // Si no estamos en la última imagen, vamos a la siguiente
         indiceImagenActual++;
         mostrarModalImagenes();
       } else {
-        // Si estamos en la última imagen, cerramos el modal
+        // Si estamos en la última imagen, simplemente cerramos el modal
         document.getElementById('modalImagenesNotificaciones').style.display = 'none';
-        
-        // Verificamos si es LOGISTICA PROPIA HEKA para mostrar el modal de confirmación
-        const aliadoSeleccionado = document.getElementById('aliado').value;
-        if (aliadoSeleccionado === 'LOGISTICA PROPIA HEKA') {
-          document.getElementById('modalConfirmacionHeka').style.display = 'flex';
-        } else {
-          // Si no es HEKA, procesamos directamente el formulario
-          procesarYEnviarFormulario();
-        }
       }
     });
     
