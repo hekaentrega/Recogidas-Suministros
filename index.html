@@ -1078,41 +1078,7 @@
       });
     }
 
-    solicitudForm.addEventListener('submit', function(e) {
-      e.preventDefault();
-      if (!validarFormulario()) {
-        return;
-      }
-      const aliadoSeleccionado = document.getElementById('aliado').value;
-      if (aliadoSeleccionado === 'LOGISTICA PROPIA HEKA') {
-        document.getElementById('modalConfirmacionHeka').style.display = 'flex';
-      } else {
-        procesarYEnviarFormulario();
-      }
-    });
 
-    document.getElementById('btnCancelarModal').addEventListener('click', function() {
-      document.getElementById('modalConfirmacionHeka').style.display = 'none';
-    });
-    document.getElementById('btnFinalizarModal').addEventListener('click', function() {
-      document.getElementById('modalConfirmacionHeka').style.display = 'none';
-      procesarYEnviarFormulario();
-    });
-
-    const recogidaCards = document.querySelectorAll('#formPanel .aliado-card');
-    const aliadoInput = document.getElementById('aliado');
-
-    if (recogidaCards.length > 0) {
-      recogidaCards.forEach(card => {
-        card.addEventListener('click', function() {
-          recogidaCards.forEach(c => c.classList.remove('selected'));
-          this.classList.add('selected');
-          const aliadoSeleccionado = this.getAttribute('data-value');
-          aliadoInput.value = aliadoSeleccionado;
-          actualizarOpcionesDespachos();
-        });
-      });
-    }
 
     // --- LÓGICA BUSCAR ESTADOS (RECOGIDAS) ---
     const searchTypeSelect = document.getElementById('searchType');
