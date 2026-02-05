@@ -699,7 +699,7 @@
     const suministrosPanel = document.getElementById('suministrosPanel');
     const statusSuministrosPanel = document.getElementById('statusSuministrosPanel');
     const bienvenidaPanel = document.getElementById('bienvenidaPanel');
-
+    
     formPanel.style.display = 'none';
     statusPanel.style.display = 'none';
     suministrosPanel.style.display = 'none';
@@ -707,7 +707,7 @@
     bienvenidaPanel.style.display = 'flex'; 
     
     menuLinks.forEach(link => link.classList.remove('active'));
-
+    
     menuLinks.forEach(link => {
       link.addEventListener('click', function(e) {
         e.preventDefault();
@@ -717,14 +717,14 @@
         menuLinks.forEach(l => l.classList.remove('active'));
         this.classList.add('active');
         bienvenidaPanel.style.display = 'none';
-
+    
         const targetPanel = this.getAttribute('data-panel');
         
         formPanel.style.display = 'none';
         statusPanel.style.display = 'none';
         suministrosPanel.style.display = 'none';
         statusSuministrosPanel.style.display = 'none';
-
+    
         if (targetPanel === 'suministros') {
           suministrosPanel.style.display = 'block';
           if(document.getElementById('suministrosWrapper')) {
@@ -743,6 +743,8 @@
         }
         else if (targetPanel === 'form') {
           formPanel.style.display = 'block';
+          // --- ¡AQUÍ AÑADIMOS LA LLAMADA! ---
+          cargarImagenesNotificaciones(); 
         } else if (targetPanel === 'status') {
           statusPanel.style.display = 'block';
           document.getElementById('tablaResultados').innerHTML = '';
@@ -1079,8 +1081,14 @@
         return;
       }
       
-      // Iniciamos el flujo cargando las imágenes de notificaciones
-      cargarImagenesNotificaciones();
+      // Verificamos si es LOGISTICA PROPIA HEKA para mostrar el modal de confirmación
+      const aliadoSeleccionado = document.getElementById('aliado').value;
+      if (aliadoSeleccionado === 'LOGISTICA PROPIA HEKA') {
+        document.getElementById('modalConfirmacionHeka').style.display = 'flex';
+      } else {
+        // Si no es HEKA, procesamos directamente el formulario
+        procesarYEnviarFormulario();
+      }
     });
     
     const recogidaCards = document.querySelectorAll('#formPanel .aliado-card');
