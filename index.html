@@ -184,6 +184,20 @@
       .mobile-nav-bar { display: none; }
       .sidebar-overlay { display: none; }
     }
+
+    /* Estilos para el modal de imágenes */
+    #modalImagenesNotificaciones .modal-body {
+      padding: 20px 32px;
+    }
+    
+    #modalImagenesNotificaciones .modal-footer {
+      padding: 16px 32px 32px 32px;
+    }
+    
+    #modalImagenesNotificaciones .modal-footer > div {
+      flex: 1;
+    }
+    
   </style>
 </head>
 <body>
@@ -587,6 +601,30 @@
       </div>
     </div>
   </div>
+
+
+  <!-- MODAL DE IMÁGENES DE NOTIFICACIONES -->
+  <div class="modal-overlay" id="modalImagenesNotificaciones">
+    <div class="modal-content" style="max-width: 800px;">
+      <div class="modal-header">
+        <h3>Información Importante</h3>
+      </div>
+      <div class="modal-body" style="text-align: center;">
+        <img id="imagenNotificacion" src="" alt="Imagen de notificación" style="max-width: 100%; max-height: 400px; margin-bottom: 20px;">
+        <div id="contadorImagenes" style="margin-bottom: 15px; font-weight: bold;"></div>
+      </div>
+      <div class="modal-footer" style="justify-content: space-between;">
+        <button class="btn btn-secondary" id="btnAnteriorImagen" style="display: none;">
+          <i class="bi bi-arrow-left"></i> Anterior
+        </button>
+        <div></div> <!-- Espaciador para centrar el botón siguiente/cerrar -->
+        <button class="btn btn-primary" id="btnSiguienteImagen">
+          Siguiente <i class="bi bi-arrow-right"></i>
+        </button>
+      </div>
+    </div>
+  </div>  
+    
 
   <div class="loading" id="loading">
     <div class="spinner"></div>
@@ -1465,7 +1503,103 @@
         }, 4000);
     }
 
+
+    // Variables para el control de imágenes
+    let imagenesNotificaciones = [];
+    let indiceImagenActual = 0;
+    
+    // Función para cargar las imágenes de notificaciones
+    function cargarImagenesNotificaciones() {
+      callAppsScript('obtenerImagenesNotificaciones')
+        .then(response => {
+          if (response && response.length > 0) {
+            imagenesNotificaciones = response;
+            indiceImagenActual = 0;
+            mostrarModalImagenes();
+          } else {
+            // Si no hay imágenes, procesamos directamente el formulario
+            procesarYEnviarFormulario();
+          }
+        })
+        .catch(error => {
+          console.error('Error al cargar imágenes de notificaciones:', error);
+          // Si hay un error, procesamos directamente el formulario
+          procesarYEnviarFormulario();
+        });
+    }
+    
+    // Función para mostrar el modal de imágenes
+    function mostrarModalImagenes() {
+      if (imagenesNotificaciones.length === 0) return;
+      
+      const modal = document.getElementById('modalImagenesNotificaciones');
+      const imagenElement = document.getElementById('imagenNotificacion');
+      const contadorElement = document.getElementById('contadorImagenes');
+      const btnAnterior = document.getElementById('btnAnteriorImagen');
+      const btnSiguiente = document.getElementById('btnSiguienteImagen');
+      
+      // Mostramos la imagen actual
+      imagenElement.src = imagenesNotificaciones[indiceImagenActual];
+      
+      // Actualizamos el contador
+      contadorElement.textContent = `Imagen ${indiceImagenActual + 1} de ${imagenesNotificaciones.length}`;
+      
+      // Configuramos los botones
+      if (imagenesNotificaciones.length === 1) {
+        // Si solo hay una imagen, mostramos solo el botón de cerrar
+        btnAnterior.style.display = 'none';
+        btnSiguiente.innerHTML = '<i class="bi bi-x-circle"></i> Cerrar';
+      } else {
+        // Si hay múltiples imágenes
+        btnAnterior.style.display = indiceImagenActual === 0 ? 'none' : 'flex';
+        
+        if (indiceImagenActual === imagenesNotificaciones.length - 1) {
+          // Si estamos en la última imagen
+          btnSiguiente.innerHTML = '<i class="bi bi-x-circle"></i> Cerrar';
+        } else {
+          // Si no estamos en la última imagen
+          btnSiguiente.innerHTML = 'Siguiente <i class="bi bi-arrow-right"></i>';
+        }
+      }
+      
+      // Mostramos el modal
+      modal.style.display = 'flex';
+    }
+    
+    // Event listeners para los botones del modal
+    document.getElementById('btnAnteriorImagen').addEventListener('click', function() {
+      if (indiceImagenActual > 0) {
+        indiceImagenActual--;
+        mostrarModalImagenes();
+      }
+    });
+    
+    document.getElementById('btnSiguienteImagen').addEventListener('click', function() {
+      if (indiceImagenActual < imagenesNotificaciones.length - 1) {
+        indiceImagenActual++;
+        mostrarModalImagenes();
+      } else {
+        // Si estamos en la última imagen, cerramos el modal y procesamos el formulario
+        document.getElementById('modalImagenesNotificaciones').style.display = 'none';
+        procesarYEnviarFormulario();
+      }
+    });
+    
+    // Modificamos el evento de envío del formulario para cargar las imágenes primero
+    solicitudForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+      if (!validarFormulario()) {
+        return;
+      }
+      
+      // Cargamos las imágenes de notificaciones
+      cargarImagenesNotificaciones();
+    });
+        
+
   });
+
+    
   </script>
 </body>
 </html>
