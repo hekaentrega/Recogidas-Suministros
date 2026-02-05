@@ -766,12 +766,12 @@
         localidadSelect.innerHTML = '<option value="">Selecciona una localidad</option>';
         localidadSelect.value = '';
         locationsData = [];
-
+    
         document.getElementById('aliado').value = '';
         document.querySelectorAll('#formPanel .aliado-card').forEach(c => c.classList.remove('selected'));
         document.getElementById('cantidadDespachos').innerHTML = '';
     }
-
+    
     cedulaInput.addEventListener('blur', function() {
       const cedula = this.value.trim();
       if (cedula) {
@@ -780,14 +780,14 @@
         limpiarYDesactivarCampos();
       }
     });
-
+    
     cedulaInput.addEventListener('keypress', function(e) {
       if (e.key === 'Enter') {
         e.preventDefault();
         this.blur();
       }
     });
-
+    
     function buscarYllenarDatos(cedula) {
       console.log("Iniciando búsqueda para cédula:", cedula);
       mostrarLoading(true);
@@ -811,7 +811,7 @@
           mostrarLoading(false);
         });
     }
-
+    
     function poblarSelects() {
       const ciudadSelect = document.getElementById('ciudad');
       const direccionSelect = document.getElementById('direccion');
@@ -823,7 +823,7 @@
       locationsData.forEach(loc => direccionSelect.add(new Option(loc.address, loc.address)));
       direccionSelect.disabled = false;
     }
-
+    
     const localidadesBogota = ['Usaquén', 'Chapinero', 'Santa Fe', 'San Cristóbal', 'Usme', 'Tunjuelo', 'Bosa', 'Kennedy', 'Fontibón', 'Engativá', 'Suba', 'Barrios Unidos', 'Teusaquillo', 'Los Mártires', 'Antonio Nariño', 'Puente Aranda', 'La Candelaria', 'Rafael Uribe Uribe', 'Ciudad Bolívar', 'Sumapaz'];
     
     document.getElementById('ciudad').addEventListener('change', function() {
@@ -856,7 +856,7 @@
         localidadSelect.value = '';
       }
     });
-
+    
     document.getElementById('direccion').addEventListener('change', function() {
       const selectedAddress = this.value;
       const location = locationsData.find(loc => loc.address === selectedAddress);
@@ -865,7 +865,7 @@
         document.getElementById('interrapidisimoCode').value = location.interrapidisimoCode || '';
       }
     });
-
+    
     function actualizarOpcionesDespachos() {
       const aliadoSeleccionado = document.getElementById('aliado').value;
       const cantidadDespachosSelect = document.getElementById('cantidadDespachos');
@@ -878,7 +878,7 @@
       });
     }
     document.getElementById('aliado').addEventListener('change', actualizarOpcionesDespachos);
-
+    
     function validarFormulario() {
       const camposRequeridos = [
         { id: 'documento', nombre: 'Documento' }, { id: 'email', nombre: 'Correo electrónico' },
@@ -909,7 +909,7 @@
       }
       return true;
     }
-
+    
     function procesarYEnviarFormulario() {
       mostrarLoading(true);
       const formData = {
@@ -939,6 +939,143 @@
           }
           mostrarLoading(false);
         });
+    }
+    
+    // Variables para el control de imágenes
+    let imagenesNotificaciones = [];
+    let indiceImagenActual = 0;
+    
+    // Función para cargar las imágenes de notificaciones
+    function cargarImagenesNotificaciones() {
+      callAppsScript('obtenerImagenesNotificaciones')
+        .then(response => {
+          if (response && response.length > 0) {
+            imagenesNotificaciones = response;
+            indiceImagenActual = 0;
+            mostrarModalImagenes();
+          } else {
+            // Si no hay imágenes, verificamos si es LOGISTICA PROPIA HEKA
+            const aliadoSeleccionado = document.getElementById('aliado').value;
+            if (aliadoSeleccionado === 'LOGISTICA PROPIA HEKA') {
+              document.getElementById('modalConfirmacionHeka').style.display = 'flex';
+            } else {
+              // Si no es HEKA y no hay imágenes, procesamos directamente el formulario
+              procesarYEnviarFormulario();
+            }
+          }
+        })
+        .catch(error => {
+          console.error('Error al cargar imágenes de notificaciones:', error);
+          // Si hay un error, verificamos si es LOGISTICA PROPIA HEKA
+          const aliadoSeleccionado = document.getElementById('aliado').value;
+          if (aliadoSeleccionado === 'LOGISTICA PROPIA HEKA') {
+            document.getElementById('modalConfirmacionHeka').style.display = 'flex';
+          } else {
+            // Si no es HEKA y hay error, procesamos directamente el formulario
+            procesarYEnviarFormulario();
+          }
+        });
+    }
+    
+    // Función para mostrar el modal de imágenes
+    function mostrarModalImagenes() {
+      if (imagenesNotificaciones.length === 0) return;
+      
+      const modal = document.getElementById('modalImagenesNotificaciones');
+      const imagenElement = document.getElementById('imagenNotificacion');
+      const contadorElement = document.getElementById('contadorImagenes');
+      const btnAnterior = document.getElementById('btnAnteriorImagen');
+      const btnSiguiente = document.getElementById('btnSiguienteImagen');
+      
+      // Mostramos la imagen actual
+      imagenElement.src = imagenesNotificaciones[indiceImagenActual];
+      
+      // Actualizamos el contador
+      contadorElement.textContent = `Imagen ${indiceImagenActual + 1} de ${imagenesNotificaciones.length}`;
+      
+      // Configuramos los botones
+      if (imagenesNotificaciones.length === 1) {
+        // Si solo hay una imagen, mostramos solo el botón de cerrar
+        btnAnterior.style.display = 'none';
+        btnSiguiente.innerHTML = '<i class="bi bi-x-circle"></i> Cerrar';
+      } else {
+        // Si hay múltiples imágenes
+        btnAnterior.style.display = indiceImagenActual === 0 ? 'none' : 'flex';
+        
+        if (indiceImagenActual === imagenesNotificaciones.length - 1) {
+          // Si estamos en la última imagen
+          btnSiguiente.innerHTML = '<i class="bi bi-x-circle"></i> Cerrar';
+        } else {
+          // Si no estamos en la última imagen
+          btnSiguiente.innerHTML = 'Siguiente <i class="bi bi-arrow-right"></i>';
+        }
+      }
+      
+      // Mostramos el modal
+      modal.style.display = 'flex';
+    }
+    
+    // Event listeners para los botones del modal de imágenes
+    document.getElementById('btnAnteriorImagen').addEventListener('click', function() {
+      if (indiceImagenActual > 0) {
+        indiceImagenActual--;
+        mostrarModalImagenes();
+      }
+    });
+    
+    document.getElementById('btnSiguienteImagen').addEventListener('click', function() {
+      if (indiceImagenActual < imagenesNotificaciones.length - 1) {
+        indiceImagenActual++;
+        mostrarModalImagenes();
+      } else {
+        // Si estamos en la última imagen, cerramos el modal
+        document.getElementById('modalImagenesNotificaciones').style.display = 'none';
+        
+        // Verificamos si es LOGISTICA PROPIA HEKA para mostrar el modal de confirmación
+        const aliadoSeleccionado = document.getElementById('aliado').value;
+        if (aliadoSeleccionado === 'LOGISTICA PROPIA HEKA') {
+          document.getElementById('modalConfirmacionHeka').style.display = 'flex';
+        } else {
+          // Si no es HEKA, procesamos directamente el formulario
+          procesarYEnviarFormulario();
+        }
+      }
+    });
+    
+    // Event listeners para los botones del modal de confirmación de Heka
+    document.getElementById('btnCancelarModal').addEventListener('click', function() {
+      document.getElementById('modalConfirmacionHeka').style.display = 'none';
+    });
+    
+    document.getElementById('btnFinalizarModal').addEventListener('click', function() {
+      document.getElementById('modalConfirmacionHeka').style.display = 'none';
+      procesarYEnviarFormulario();
+    });
+    
+    // Event listener para el envío del formulario
+    solicitudForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+      if (!validarFormulario()) {
+        return;
+      }
+      
+      // Iniciamos el flujo cargando las imágenes de notificaciones
+      cargarImagenesNotificaciones();
+    });
+    
+    const recogidaCards = document.querySelectorAll('#formPanel .aliado-card');
+    const aliadoInput = document.getElementById('aliado');
+    
+    if (recogidaCards.length > 0) {
+      recogidaCards.forEach(card => {
+        card.addEventListener('click', function() {
+          recogidaCards.forEach(c => c.classList.remove('selected'));
+          this.classList.add('selected');
+          const aliadoSeleccionado = this.getAttribute('data-value');
+          aliadoInput.value = aliadoSeleccionado;
+          actualizarOpcionesDespachos();
+        });
+      });
     }
 
     solicitudForm.addEventListener('submit', function(e) {
@@ -1503,99 +1640,6 @@
         }, 4000);
     }
 
-
-    // Variables para el control de imágenes
-    let imagenesNotificaciones = [];
-    let indiceImagenActual = 0;
-    
-    // Función para cargar las imágenes de notificaciones
-    function cargarImagenesNotificaciones() {
-      callAppsScript('obtenerImagenesNotificaciones')
-        .then(response => {
-          if (response && response.length > 0) {
-            imagenesNotificaciones = response;
-            indiceImagenActual = 0;
-            mostrarModalImagenes();
-          } else {
-            // Si no hay imágenes, procesamos directamente el formulario
-            procesarYEnviarFormulario();
-          }
-        })
-        .catch(error => {
-          console.error('Error al cargar imágenes de notificaciones:', error);
-          // Si hay un error, procesamos directamente el formulario
-          procesarYEnviarFormulario();
-        });
-    }
-    
-    // Función para mostrar el modal de imágenes
-    function mostrarModalImagenes() {
-      if (imagenesNotificaciones.length === 0) return;
-      
-      const modal = document.getElementById('modalImagenesNotificaciones');
-      const imagenElement = document.getElementById('imagenNotificacion');
-      const contadorElement = document.getElementById('contadorImagenes');
-      const btnAnterior = document.getElementById('btnAnteriorImagen');
-      const btnSiguiente = document.getElementById('btnSiguienteImagen');
-      
-      // Mostramos la imagen actual
-      imagenElement.src = imagenesNotificaciones[indiceImagenActual];
-      
-      // Actualizamos el contador
-      contadorElement.textContent = `Imagen ${indiceImagenActual + 1} de ${imagenesNotificaciones.length}`;
-      
-      // Configuramos los botones
-      if (imagenesNotificaciones.length === 1) {
-        // Si solo hay una imagen, mostramos solo el botón de cerrar
-        btnAnterior.style.display = 'none';
-        btnSiguiente.innerHTML = '<i class="bi bi-x-circle"></i> Cerrar';
-      } else {
-        // Si hay múltiples imágenes
-        btnAnterior.style.display = indiceImagenActual === 0 ? 'none' : 'flex';
-        
-        if (indiceImagenActual === imagenesNotificaciones.length - 1) {
-          // Si estamos en la última imagen
-          btnSiguiente.innerHTML = '<i class="bi bi-x-circle"></i> Cerrar';
-        } else {
-          // Si no estamos en la última imagen
-          btnSiguiente.innerHTML = 'Siguiente <i class="bi bi-arrow-right"></i>';
-        }
-      }
-      
-      // Mostramos el modal
-      modal.style.display = 'flex';
-    }
-    
-    // Event listeners para los botones del modal
-    document.getElementById('btnAnteriorImagen').addEventListener('click', function() {
-      if (indiceImagenActual > 0) {
-        indiceImagenActual--;
-        mostrarModalImagenes();
-      }
-    });
-    
-    document.getElementById('btnSiguienteImagen').addEventListener('click', function() {
-      if (indiceImagenActual < imagenesNotificaciones.length - 1) {
-        indiceImagenActual++;
-        mostrarModalImagenes();
-      } else {
-        // Si estamos en la última imagen, cerramos el modal y procesamos el formulario
-        document.getElementById('modalImagenesNotificaciones').style.display = 'none';
-        procesarYEnviarFormulario();
-      }
-    });
-    
-    // Modificamos el evento de envío del formulario para cargar las imágenes primero
-    solicitudForm.addEventListener('submit', function(e) {
-      e.preventDefault();
-      if (!validarFormulario()) {
-        return;
-      }
-      
-      // Cargamos las imágenes de notificaciones
-      cargarImagenesNotificaciones();
-    });
-        
 
   });
 
