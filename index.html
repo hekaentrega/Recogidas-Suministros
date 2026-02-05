@@ -197,6 +197,13 @@
     #modalImagenesNotificaciones .modal-footer > div {
       flex: 1;
     }
+
+    /* =================================================================
+       ASEGURAR QUE EL MODAL DE IMÁGENES ESTÉ SIEMPRE POR ENCIMA
+       ================================================================= */
+    #modalImagenesNotificaciones.modal-overlay {
+      z-index: 99999 !important; 
+    }
     
   </style>
 </head>
@@ -945,15 +952,21 @@
     let imagenesNotificaciones = [];
     let indiceImagenActual = 0;
     
-    // Función para cargar las imágenes de notificaciones
     function cargarImagenesNotificaciones() {
+      console.log("Cargando imágenes de notificaciones...");
+      mostrarLoading(true);
+      
       callAppsScript('obtenerImagenesNotificaciones')
         .then(response => {
+          mostrarLoading(false);
+          console.log("Respuesta de imágenes:", response);
+          
           if (response && response.length > 0) {
             imagenesNotificaciones = response;
             indiceImagenActual = 0;
             mostrarModalImagenes();
           } else {
+            console.log("No hay imágenes de notificaciones disponibles");
             // Si no hay imágenes, verificamos si es LOGISTICA PROPIA HEKA
             const aliadoSeleccionado = document.getElementById('aliado').value;
             if (aliadoSeleccionado === 'LOGISTICA PROPIA HEKA') {
@@ -965,6 +978,7 @@
           }
         })
         .catch(error => {
+          mostrarLoading(false);
           console.error('Error al cargar imágenes de notificaciones:', error);
           // Si hay un error, verificamos si es LOGISTICA PROPIA HEKA
           const aliadoSeleccionado = document.getElementById('aliado').value;
@@ -977,7 +991,6 @@
         });
     }
     
-    // Función para mostrar el modal de imágenes
     function mostrarModalImagenes() {
       if (imagenesNotificaciones.length === 0) return;
       
@@ -1011,8 +1024,15 @@
         }
       }
       
-      // Mostramos el modal
+      // Forzamos la visibilidad del modal
       modal.style.display = 'flex';
+      modal.style.visibility = 'visible';
+      modal.style.opacity = '1';
+      
+      // Forzamos que esté por encima de todo
+      modal.style.zIndex = '99999';
+      
+      console.log("Modal de imágenes mostrado");
     }
     
     // Event listeners para los botones del modal de imágenes
