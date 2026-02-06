@@ -628,8 +628,8 @@
   </div>
   
   <script>
+  <script>
   // Configuración de la API de Apps Script
-  // REEMPLAZA ESTA URL CON LA URL DE TU APPS SCRIPT DESPLEGADA COMO APLICACIÓN WEB
   const API_BASE_URL = 'https://script.google.com/macros/s/AKfycbxFlnPrqQjtbXCNoVF1BFA-b5zdu8tn111WWKg70WAz-A2iTCBBPuOhTP00bObDSQ-z/exec';
 
   // Función para hacer llamadas a la API de Apps Script
@@ -646,6 +646,20 @@
   }
 
   document.addEventListener('DOMContentLoaded', function() {
+    // --- NUEVO: PRECARGA DE IMÁGENES DE NOTIFICACIÓN ---
+    // Ejecutamos esto apenas abre la página para que no haya espera al hacer clic
+    callAppsScript('obtenerImagenesNotificaciones')
+      .then(data => {
+        if (Array.isArray(data)) {
+          imagenesNotificaciones = data;
+          console.log(`Notificaciones precargadas: ${imagenesNotificaciones.length} imágenes.`);
+        }
+      })
+      .catch(error => {
+        console.error("Error precargando notificaciones:", error);
+      });
+    // -----------------------------------------------------
+
     const sidebarToggle = document.getElementById('toggleSidebar');
     const hamburgerMenu = document.getElementById('hamburgerMenu');
     const sidebarOverlay = document.getElementById('sidebarOverlay');
@@ -733,9 +747,13 @@
         }
         else if (targetPanel === 'form') {
           formPanel.style.display = 'block';
-          // --- ¡AQUÍ AÑADIMOS LA LLAMADA! ---
-          cargarYMostrarNotificaciones(); // Nueva función más simple
-           
+          
+          // --- LÓGICA ACTUALIZADA DE NOTIFICACIONES ---
+          // Ya tenemos las imágenes cargadas en la variable global 'imagenesNotificaciones'
+          // Verificamos si hay contenido antes de mostrar el modal
+          if (imagenesNotificaciones.length > 0) {
+            mostrarModalImagenes();
+          }
         } else if (targetPanel === 'status') {
           statusPanel.style.display = 'block';
           document.getElementById('tablaResultados').innerHTML = '';
@@ -941,32 +959,9 @@
         });
     }
     
-    // Variables para el control de imágenes
+    // Variables para el control de imágenes (Globales)
     let imagenesNotificaciones = [];
     let indiceImagenActual = 0;
-    
-    // --- NUEVA FUNCIÓN SIMPLE ---
-    function cargarYMostrarNotificaciones() {
-      console.log("Cargando y mostrando notificaciones al entrar a 'Solicitar Recogida'");
-      mostrarLoading(true);
-      
-      callAppsScript('obtenerImagenesNotificaciones')
-        .then(response => {
-          mostrarLoading(false);
-          if (response && response.length > 0) {
-            imagenesNotificaciones = response;
-            indiceImagenActual = 0;
-            mostrarModalImagenes(); // Llama directamente a la función que muestra el modal
-          } else {
-            console.log("No hay imágenes de notificaciones para mostrar.");
-          }
-        })
-        .catch(error => {
-          mostrarLoading(false);
-          console.error('Error al cargar imágenes de notificaciones:', error);
-        });
-    }
-
         
     function mostrarModalImagenes() {
       if (imagenesNotificaciones.length === 0) return;
@@ -976,17 +971,15 @@
       const indicadoresElement = document.getElementById('indicadoresImagenes');
       const btnAnterior = document.getElementById('btnAnteriorImagen');
       const btnSiguiente = document.getElementById('btnSiguienteImagen');
-      const modalFooter = modal.querySelector('.modal-footer'); // <-- AÑADE ESTA LÍNEA
+      const modalFooter = modal.querySelector('.modal-footer'); 
       
       // Mostramos la imagen actual
       imagenElement.src = imagenesNotificaciones[indiceImagenActual];
       
       // --- LÓGICA DE LOS INDICADORES (PUNTOS) ---
-      // Limpiamos los indicadores anteriores
       indicadoresElement.innerHTML = '';
       
       if (imagenesNotificaciones.length > 1) {
-        // Si hay más de una imagen, creamos los puntos
         for (let i = 0; i < imagenesNotificaciones.length; i++) {
           const punto = document.createElement('span');
           punto.style.display = 'inline-block';
@@ -998,7 +991,6 @@
           punto.style.cursor = 'pointer';
           punto.setAttribute('data-indice', i);
           
-          // Añadimos un evento para poder hacer clic en los puntos
           punto.addEventListener('click', function() {
             indiceImagenActual = parseInt(this.getAttribute('data-indice'));
             mostrarModalImagenes();
@@ -1012,27 +1004,21 @@
       if (imagenesNotificaciones.length === 1) {
         btnAnterior.style.display = 'none';
         btnSiguiente.innerHTML = '<i class="bi bi-x-circle"></i> Cerrar';
-        btnSiguiente.className = 'btn btn-secondary'; // Botón negro
-
-        // Si solo hay una imagen, centramos el botón
+        btnSiguiente.className = 'btn btn-secondary'; 
         modalFooter.style.justifyContent = 'center';        
       } else {
         btnAnterior.style.display = indiceImagenActual === 0 ? 'none' : 'flex';
         
         if (indiceImagenActual === imagenesNotificaciones.length - 1) {
           btnSiguiente.innerHTML = '<i class="bi bi-x-circle"></i> Cerrar';
-          btnSiguiente.className = 'btn btn-secondary'; // Botón negro
+          btnSiguiente.className = 'btn btn-secondary'; 
         } else {
           btnSiguiente.innerHTML = 'Siguiente <i class="bi bi-arrow-right"></i>';
-          btnSiguiente.className = 'btn btn-primary'; // Botón amarillo
+          btnSiguiente.className = 'btn btn-primary'; 
         }
-        // Si hay múltiples imágenes, usamos space-between
         modalFooter.style.justifyContent = 'space-between';
       }
-        
-    
       
-      // Simplemente mostramos el modal (el CSS ya maneja el resto)
       modal.style.display = 'flex';
     }
         
@@ -1044,14 +1030,11 @@
       }
     });
     
-    // Event listener para el botón "Siguiente / Cerrar" del modal de imágenes
     document.getElementById('btnSiguienteImagen').addEventListener('click', function() {
       if (indiceImagenActual < imagenesNotificaciones.length - 1) {
-        // Si no estamos en la última imagen, vamos a la siguiente
         indiceImagenActual++;
         mostrarModalImagenes();
       } else {
-        // Si estamos en la última imagen, simplemente cerramos el modal
         document.getElementById('modalImagenesNotificaciones').style.display = 'none';
       }
     });
@@ -1073,12 +1056,10 @@
         return;
       }
       
-      // Verificamos si es LOGISTICA PROPIA HEKA para mostrar el modal de confirmación
       const aliadoSeleccionado = document.getElementById('aliado').value;
       if (aliadoSeleccionado === 'LOGISTICA PROPIA HEKA') {
         document.getElementById('modalConfirmacionHeka').style.display = 'flex';
       } else {
-        // Si no es HEKA, procesamos directamente el formulario
         procesarYEnviarFormulario();
       }
     });
@@ -1097,8 +1078,6 @@
         });
       });
     }
-
-
 
     // --- LÓGICA BUSCAR ESTADOS (RECOGIDAS) ---
     const searchTypeSelect = document.getElementById('searchType');
@@ -1387,7 +1366,6 @@
       });
     }
 
-    // --- NUEVA FUNCIÓN PARA MOSTRAR ERROR DE VALIDACIÓN ---
     function showValidationErrorSuministros(mensaje) {
       document.getElementById('mensajeErrorSuministros').innerText = mensaje;
       document.getElementById('modalErrorSuministros').style.display = 'flex';
@@ -1401,7 +1379,6 @@
     suministrosForm.addEventListener('submit', function(e) {
       e.preventDefault();
 
-      // --- VALIDACIÓN DE SUMINISTROS (NUEVA LÓGICA) ---
       const sumAliadoInput = document.getElementById('sumAliado');
       const sumAprobadosInter = parseInt(document.getElementById('sumAprobadosInter').value) || 0;
       const sumAprobadosServi = parseInt(document.getElementById('sumAprobadosServi').value) || 0;
@@ -1428,11 +1405,9 @@
 
       if (errorMensaje !== "") {
         showValidationErrorSuministros(errorMensaje);
-        return; // Detiene el envío aquí
+        return; 
       }
 
-
-      // --- CONTINÚAN VALIDACIONES NORMALES ---
       const emailInput = document.getElementById('sumEmail');
       const aliadoInput = document.getElementById('sumAliado');
       const tipoInsumoInput = document.getElementById('sumTipoInsumo');
@@ -1628,6 +1603,9 @@
 
 
   });
+
+    
+  </script>
 
     
   </script>
