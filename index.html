@@ -1111,16 +1111,24 @@
           // --- NUEVA VALIDACIÓN LOGÍSTICA PROPIA ---
           if (aliadoSeleccionado === 'LOGISTICA PROPIA HEKA') {
             const ciudadSeleccionada = document.getElementById('ciudad').value;
-            const ciudadPermitida = 'CUCUTA / NORTE DE SANTANDER';
+            
+            // 1. CREAS UNA LISTA (ARRAY) CON TODAS LAS CIUDADES PERMITIDAS
+            const ciudadesPermitidas = [
+                'CUCUTA / NORTE DE SANTANDER',
+                'LOS PATIOS / NORTE DE SANTANDER',
+                'VILLA DEL ROSARIO / NORTE DE SANTANDER' // <-- AGREGA AQUÍ LAS OTRAS CIUDADES
+                // Ejemplo: 'BOGOTA / CUNDINAMARCA'
+            ];
 
-            // 1. Validar que ya haya seleccionado una ciudad
+            // 2. Validar que ya haya seleccionado una ciudad
             if (!ciudadSeleccionada) {
               showToast('Por favor selecciona una ciudad antes de elegir Logística Propia.', 'error');
               return; // Detenemos la selección
             }
 
-            // 2. Validar que la ciudad sea Cúcuta
-            if (ciudadSeleccionada !== ciudadPermitida) {
+            // 3. Validar que la ciudad ESTÉ DENTRO de la lista de permitidas
+            // El signo "!" significa "SI NO está incluida..."
+            if (!ciudadesPermitidas.includes(ciudadSeleccionada)) {
               // Mostramos el modal con el mensaje personalizado
               document.getElementById('mensajeErrorLogisticaPropia').innerText = 
                 `ACTUALMENTE NO CONTAMOS CON COBERTURA CON LA CIUDAD ${ciudadSeleccionada}`;
@@ -1128,6 +1136,7 @@
               return; // Detenemos la selección y no pintamos la tarjeta como seleccionada
             }
           }
+          // ------------------------------------------
           // ------------------------------------------
 
           // Si pasa la validación (o es otro aliado), continuamos con la lógica normal
